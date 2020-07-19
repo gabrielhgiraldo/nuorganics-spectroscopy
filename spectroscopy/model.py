@@ -8,17 +8,32 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.feature_selection import SelectFromModel
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
+# from sklearn.utils import check_arrays
 
-from utils import load_training_data, get_wavelength_columns
+from spectroscopy.utils import load_training_data, get_wavelength_columns
 
 MODEL_DIR = Path('bin/model/')
 
+def mean_absolute_percentage_error(y_true, y_pred): 
+    # y_true, y_pred = check_arrays(y_true, y_pred)
+
+    ## Note: does not handle mix 1d representation
+    #if _is_1d(y_true): 
+    #    y_true, y_pred = _check_1d_array(y_true, y_pred)
+
+    return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
+
+
 def score_model(model, X_train, y_train, X_test, y_test):
+    y_train_pred = model.predict(X_train)
+    y_test_pred = model.predict(X_test)
     return {
         'train_r2':model.score(X_train, y_train),
-        'train_rms3':np.sqrt(mean_squared_error(y_train, model.predict(X_train))),
+        'train_mape':mean_absolute_percentage_error(y_train, y_train_pred),
+        'train_rms3':np.sqrt(mean_squared_error(y_train, y_train_pred)),
         'test_r2':model.score(X_test, y_test),
-        'test_rmse':np.sqrt(mean_squared_error(y_test, model.predict(X_test)))
+        'test_mape':mean_absolute_percentage_error(y_test, y_test_pred),
+        'test_rmse':np.sqrt(mean_squared_error(y_test, y_test_pred))
     }
 
 def train_ammonia_n_model(model_dir=None):
@@ -48,9 +63,6 @@ def train_ammonia_n_model(model_dir=None):
         json.dump(selected_scores, f)
     with open(MODEL_DIR / 'model.pkl', 'wb') as f:
         pickle.dump(model, f)
-
-if __name__ == "__main__":
-    train_ammonia_n_model()
 
 
 
