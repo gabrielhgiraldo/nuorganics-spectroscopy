@@ -1,0 +1,20 @@
+# DATA FILES
+*.csv
+*.TRM
+*.ABS
+data/
+NIR DATA
+
+# python files
+*.pyc
+__pycache__
+
+# jupyter files
+*.ipynb
+!analysis/*.ipynb
+
+# IDE files
+.vscode
+
+# mac OS files
+.DS_STORE
