@@ -31,7 +31,8 @@ wavelength_columns = get_wavelength_columns(df_samples)
 X_samples = df_samples[wavelength_columns]
 ammonia_N = model.predict(X_samples)
 results_df = pd.DataFrame({
-    'filename':df_samples['filename'],
+    'sample_name': df_samples['sample_name'],
+    'trm_filename':df_samples['filename'],
     'Ammonia-N':ammonia_N
 })
 results_path = Path('ammonia_N.csv')
