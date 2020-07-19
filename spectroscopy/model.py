@@ -69,7 +69,7 @@ def load_model(model_dir=None):
     if model_dir is None:
         model_dir = MODEL_DIR
     model_dir = Path(model_dir)
-    with open(model_dir/MODEL_FILENAME) as f:
+    with open(model_dir/MODEL_FILENAME, 'rb') as f:
         model = pickle.load(f)
     return model
 
