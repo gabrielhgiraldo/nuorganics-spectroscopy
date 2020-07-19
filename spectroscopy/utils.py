@@ -5,7 +5,7 @@ import pandas as pd
 from sklearn.impute import SimpleImputer
 
 
-DATA_DIR = Path(__file__).parent / 'data'
+DATA_DIR = Path(__file__).parents[1] / 'data'
 TRAINING_DATA_FILENAME = 'training_data.csv'
 
 def plot_sample(wavelengths, transmittance):
