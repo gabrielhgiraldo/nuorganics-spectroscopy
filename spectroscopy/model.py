@@ -13,6 +13,7 @@ from sklearn.model_selection import train_test_split
 from spectroscopy.utils import load_training_data, get_wavelength_columns
 
 MODEL_DIR = Path('bin/model/')
+MODEL_FILENAME = 'model.pkl'
 
 def mean_absolute_percentage_error(y_true, y_pred): 
     # y_true, y_pred = check_arrays(y_true, y_pred)
@@ -61,8 +62,17 @@ def train_ammonia_n_model(model_dir=None):
         json.dump(baseline_scores, f)
     with open(MODEL_DIR/'selected_scores.json', 'w') as f:
         json.dump(selected_scores, f)
-    with open(MODEL_DIR / 'model.pkl', 'wb') as f:
+    with open(MODEL_DIR / MODEL_FILENAME, 'wb') as f:
         pickle.dump(model, f)
+
+def load_model(model_dir=None):
+    if model_dir is None:
+        model_dir = MODEL_DIR
+    model_dir = Path(model_dir)
+    with open(model_dir/MODEL_FILENAME) as f:
+        model = pickle.load(f)
+    return model
+
 
 
 
