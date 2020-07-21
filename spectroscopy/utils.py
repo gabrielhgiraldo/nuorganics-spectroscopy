@@ -1,6 +1,7 @@
 from pathlib import Path
 import matplotlib.pyplot as plt
 
+import numpy as np
 import pandas as pd
 from sklearn.impute import SimpleImputer
 
@@ -15,6 +16,7 @@ def plot_sample(wavelengths, transmittance):
     plt.ylabel('Transmittance (counts)')
     plt.plot(wavelengths, transmittance)
     plt.show()
+
 
 
 def _extract_trm_filename_info(filename):
@@ -108,3 +110,16 @@ def cache_cleaned_data():
 
 def load_training_data() -> pd.DataFrame:
     return pd.read_csv(DATA_DIR/TRAINING_DATA_FILENAME)
+
+
+def plot_fit(y_true, y_pred, save=True):
+    plt.figure(figsize=(10,10))
+    plt.scatter(y_true, y_pred)
+    plt.title('Ammonia-N Prediction from Machine Learning Spectroscopy Inference Model')
+    plt.plot(np.linspace(0, 0.6, len(y_true)), np.linspace(0, 0.6, len(y_true)))
+    plt.xlabel('True Ammonia-N')
+    plt.ylabel('Predicted Ammonia-N')
+    plt.xlim(0,0.6)
+    plt.ylim(0,0.6)
+    if save:
+        plt.savefig('ammonia_prediction_vs_truth.png')
