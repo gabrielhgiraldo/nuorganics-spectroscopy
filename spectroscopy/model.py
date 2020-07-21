@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from lightgbm import LGBMRegressor
 import numpy as np
 import pickle
 from pprint import pprint
@@ -11,7 +12,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 # from sklearn.utils import check_arrays
 
-from spectroscopy.utils import load_training_data, get_wavelength_columns
+from spectroscopy.utils import (
+    load_training_data,
+    get_wavelength_columns,
+    plot_fit,
+)
 
 MODEL_DIR = Path('bin/model/')
 MODEL_FILENAME = 'model.pkl'
@@ -39,7 +44,8 @@ def score_model(model, X_train, y_train, X_test, y_test):
     }
 
 def _define_model():
-    return RandomForestRegressor(random_state=10, max_depth=5, n_estimators=10)
+    return RandomForestRegressor(random_state=10, max_depth=20, n_estimators=100)
+
 
 def train_ammonia_n_model(model_dir=None):
     if model_dir is None:
@@ -52,6 +58,7 @@ def train_ammonia_n_model(model_dir=None):
     model = _define_model()
     model.fit(X_train, y_train)
     baseline_scores = score_model(model, X_train, y_train, X_test, y_test)
+    print('all features scores:')
     pprint(baseline_scores)
     # select k best features
     model_pipeline = Pipeline([
@@ -60,7 +67,10 @@ def train_ammonia_n_model(model_dir=None):
     ])
     model_pipeline.fit(X_train, y_train)
     selected_scores = score_model(model_pipeline, X_train, y_train, X_test, y_test)
+    print('reduced features scores:')
     pprint(selected_scores)
+    print('saving fit graph')
+    plot_fit(y_test, model_pipeline.predict(X_test))
     model_dir.mkdir(parents=True, exist_ok=True)
     with open(MODEL_DIR/'baseline_scores.json', 'w') as f:
         json.dump(baseline_scores, f)
