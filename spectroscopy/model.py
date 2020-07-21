@@ -45,6 +45,8 @@ def score_model(model, X_train, y_train, X_test, y_test):
 
 def _define_model():
     return RandomForestRegressor(random_state=10, max_depth=20, n_estimators=100)
+    # return RandomForestRegressor(random_state=10)
+
 
 
 def train_ammonia_n_model(model_dir=None):
@@ -53,6 +55,7 @@ def train_ammonia_n_model(model_dir=None):
     model_dir = Path(model_dir)
     df = load_training_data()
     feature_columns = get_wavelength_columns(df)
+    feature_columns.append('integration_time')
     X, y = df[feature_columns], df['Ammonia-N']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=10)
     model = _define_model()
@@ -60,6 +63,7 @@ def train_ammonia_n_model(model_dir=None):
     baseline_scores = score_model(model, X_train, y_train, X_test, y_test)
     print('all features scores:')
     pprint(baseline_scores)
+
     # select k best features
     model_pipeline = Pipeline([
         ('feature_selector', SelectFromModel(_define_model())),
@@ -67,8 +71,14 @@ def train_ammonia_n_model(model_dir=None):
     ])
     model_pipeline.fit(X_train, y_train)
     selected_scores = score_model(model_pipeline, X_train, y_train, X_test, y_test)
+    # print out the selected features
+    feature_selector = model_pipeline.named_steps['feature_selector']
+    selected_features = X_test.columns[feature_selector.get_support()]
+    print('selected important features:', selected_features)
     print('reduced features scores:')
     pprint(selected_scores)
+    
+
     print('saving fit graph')
     plot_fit(y_test, model_pipeline.predict(X_test))
     model_dir.mkdir(parents=True, exist_ok=True)
@@ -87,7 +97,6 @@ def load_model(model_dir=None):
     with open(model_dir/MODEL_FILENAME, 'rb') as f:
         model = pickle.load(f)
     return model
-
 
 
 

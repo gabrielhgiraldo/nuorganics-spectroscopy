@@ -5,7 +5,7 @@ import os
 import pandas as pd
 
 from spectroscopy.model import load_model
-from spectroscopy.utils import get_wavelength_columns, parse_trms
+from spectroscopy.utils import get_wavelength_columns, parse_trm_files
 
 # Construct the argument parser
 ap = argparse.ArgumentParser()
@@ -21,14 +21,15 @@ sample_path = Path(args['sample_path'])
 print('extracting samples')
 df_samples = pd.DataFrame()
 try:
-    df_samples = parse_trms(sample_path)
+    df_samples = parse_trm_files(sample_path)
     print('samples extracted')
 except FileNotFoundError:
     print(f'no samples found at the provided path {sample_path}')
     os.system.exit()
 print('calculating samples Ammonia-N')
-wavelength_columns = get_wavelength_columns(df_samples)
-X_samples = df_samples[wavelength_columns]
+feature_columns = get_wavelength_columns(df_samples)
+feature_columns.append('integration_time')
+X_samples = df_samples[feature_columns]
 ammonia_N = model.predict(X_samples)
 results_df = pd.DataFrame({
     'sample_name': df_samples['sample_name'],

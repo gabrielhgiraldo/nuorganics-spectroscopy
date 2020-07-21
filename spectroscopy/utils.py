@@ -19,7 +19,7 @@ def plot_sample(wavelengths, transmittance):
 
 
 
-def _extract_trm_filename_info(filename):
+def _extract_spect_filename_info(filename):
     sample_name_method, _, _ = filename.partition('-')
     if '(' in sample_name_method:
         sample_name, _, process_method = sample_name_method.partition('(')
@@ -34,23 +34,32 @@ def _extract_trm_filename_info(filename):
     return sample_name, process_method, sample_date, run_number
 
 
-def parse_trm(trm_path, drop_neg_trans=False):
-    trm_path = Path(trm_path)
-    df = pd.read_csv(trm_path)
+def _extract_integration_time(extra_info):
+    return extra_info.partition('->')[2]\
+                     .partition('Time:')[2]\
+                     .partition('Avg:')[0]\
+                     .strip()\
+                     .partition('ms')[0]
+
+
+def parse_spect_file(path, drop_neg_values=False):
+    path = Path(path)
+    df = pd.read_csv(path)
     extra_info = df.columns[0]
     data = df.iloc[:,0]\
              .str.strip()\
              .str.partition(' ')
     wavelengths = data[0].astype(float)
-    transmittance = data[2].astype(float)
-    if drop_neg_trans:
-        mask = transmittance > 0
-        transmittance = transmittance[mask]
+    values = data[2].astype(float)
+    if drop_neg_values:
+        mask = values > 0
+        values = values[mask]
         wavelengths = wavelengths[mask]
-    sample_df = pd.DataFrame([transmittance.values], columns=wavelengths)
+    sample_df = pd.DataFrame([values.values], columns=wavelengths)
     sample_df['extra_info'] = extra_info
-    sample_df['filename'] = trm_path.name
-    sample_name, process_method, sample_date, run_number = _extract_trm_filename_info(trm_path.name)
+    sample_df['integration_time'] = _extract_integration_time(extra_info)
+    sample_df['filename'] = path.name
+    sample_name, process_method, sample_date, run_number = _extract_spect_filename_info(path.name)
     sample_df['sample_name'] = sample_name
     sample_df['sample_date'] = sample_date
     sample_df['run_number'] = run_number
@@ -58,11 +67,20 @@ def parse_trm(trm_path, drop_neg_trans=False):
     sample_df = sample_df.reset_index(drop=True)
     return sample_df
 
-def parse_trms(trm_directory=None) -> pd.DataFrame:
-    if trm_directory is None:
-        trm_directory = DATA_DIR
-    trm_directory = Path(trm_directory)
-    return pd.concat([parse_trm(trm_filepath) for trm_filepath in trm_directory.glob("*.TRM")])
+
+def parse_trm_files(directory_path=None) -> pd.DataFrame:
+    if directory_path is None:
+        directory_path = DATA_DIR
+    directory = Path(directory_path)
+    return pd.concat([parse_spect_file(filepath) for filepath in directory.glob("*.TRM")])
+
+
+def parse_abs_files(directory_path=None) -> pd.DataFrame:
+    if directory_path is None:
+        directory_path = DATA_DIR
+    directory = Path(directory_path)
+    return pd.concat([parse_spect_file(filepath) for filepath in directory.glob("*.ABS")])
+
 
 def _extract_lab_report_filename_info(filename):
     sample_name_date = filename.partition('-')[2]
@@ -100,7 +118,7 @@ def get_wavelength_columns(df):
 
 def cache_cleaned_data():
     df_lr = parse_lab_reports()
-    df_trms = parse_trms()
+    df_trms = parse_trm_files()
     # fill in missing 
     df = df_trms.join(df_lr.set_index('sample_name')[['Ammonia-N']], on='sample_name')\
                                         .reset_index(drop=True)
@@ -114,7 +132,7 @@ def load_training_data() -> pd.DataFrame:
 
 def plot_fit(y_true, y_pred, save=True):
     plt.figure(figsize=(10,10))
-    plt.scatter(y_true, y_pred)
+    plt.scatter(y_true, y_pred, alpha=0.5)
     plt.title('Ammonia-N Prediction from Machine Learning Spectroscopy Inference Model')
     plt.plot(np.linspace(0, 0.6, len(y_true)), np.linspace(0, 0.6, len(y_true)))
     plt.xlabel('True Ammonia-N')
