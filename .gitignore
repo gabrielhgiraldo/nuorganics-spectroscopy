@@ -10,6 +10,7 @@ NIR DATA
 __pycache__
 
 # jupyter files
+.ipynb_checkpoints
 *.ipynb
 !analysis/*.ipynb
 
@@ -21,3 +22,6 @@ __pycache__
 
 # model files
 bin
+
+# virtual environment
+.spectroscopy
