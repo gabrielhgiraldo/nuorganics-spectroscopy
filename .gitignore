@@ -5,6 +5,9 @@
 data/
 NIR DATA
 
+# images
+*.png
+
 # python files
 *.pyc
 __pycache__
