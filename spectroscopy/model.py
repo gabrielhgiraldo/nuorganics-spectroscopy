@@ -11,6 +11,7 @@ from sklearn.feature_selection import SelectFromModel
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
+from sklearn.decomposition import PCA
 
 from spectroscopy.utils import (
     load_training_data,
@@ -48,6 +49,12 @@ def _define_model():
     # return LGBMRegressor()
     return RandomForestRegressor(random_state=10)
 
+def extract_features(df):
+    df['process_method'] = pd.get_dummies(df[['process_method']].fillna(''))
+    feature_columns = get_wavelength_columns(df)
+    feature_columns.append('integration_time')
+    feature_columns.append('process_method')
+    return feature_columns
 
 
 def train_ammonia_n_model(model_dir=None):
@@ -55,10 +62,8 @@ def train_ammonia_n_model(model_dir=None):
         model_dir = MODEL_DIR
     model_dir = Path(model_dir)
     df = load_training_data()
-    df['process_method'] = pd.get_dummies(df[['process_method']].fillna(''))
-    feature_columns = get_wavelength_columns(df)
-    feature_columns.append('integration_time')
-    feature_columns.append('process_method')
+    # df = df[df['process_method'] == 'ground']
+    feature_columns = extract_features(df)
     X, y = df[feature_columns], df['Ammonia-N']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=10)
     model = _define_model()
@@ -70,6 +75,7 @@ def train_ammonia_n_model(model_dir=None):
     # select k best features
     model_pipeline = Pipeline([
         ('feature_selector', SelectFromModel(_define_model())),
+        # ('PCA', PCA()),
         ('model', model)
     ])
     model_pipeline.fit(X_train, y_train)
