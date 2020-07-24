@@ -159,3 +159,25 @@ def plot_fit(y_true, y_pred, save=True):
     plt.ylim(0,0.6)
     if save:
         plt.savefig('ammonia_prediction_vs_truth.png')
+
+def plot_residuals(y_true, y_pred, save=True):
+    plt.figure(figsize=(10,10))
+    plt.scatter(y_true, y_true-y_pred)
+    plt.xlabel('True')
+    plt.ylabel('residual')
+    plt.title('Residuals')
+    if save:
+        plt.savefig('ammonia_prediction_vs_truth.png')
+
+
+def get_highest_error_data(y_true, model, X):
+    y_pred = model.predict(X)
+    residuals = y_true - y_pred
+    max_error_indices = np.argmax(residuals)
+    
+
+# def highlight_important_wavelengths(wavelengths):
+#     plt.figure(figsize=(20,10))
+#     x = wavelengths
+#     y = [0]*len(wavelengths)
+#     plt.plot(x, y)
