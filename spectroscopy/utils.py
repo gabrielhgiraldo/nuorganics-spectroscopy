@@ -1,11 +1,12 @@
-from pathlib import Path
 import matplotlib.pyplot as plt
+from pathlib import Path
+import re
 
 import numpy as np
 import pandas as pd
 from sklearn.impute import SimpleImputer
 
-
+DATETIME_FORMAT = '%m-%d-%y'
 DATA_DIR = Path(__file__).parents[1] / 'data'
 TRAINING_DATA_FILENAME = 'training_data.csv'
 
@@ -20,7 +21,7 @@ def plot_sample(wavelengths, transmittance):
 
 
 def _extract_spect_filename_info(filename):
-    sample_name_method, _, _ = filename.partition('-')
+    sample_name_method, _, remaining = filename.partition('-')
     if '(' in sample_name_method:
         sample_name, _, process_method = sample_name_method.partition('(')
         sample_name = sample_name.strip().lower()
@@ -29,7 +30,9 @@ def _extract_spect_filename_info(filename):
         sample_name = sample_name_method.strip().lower()
         process_method = ''
     process_method = process_method.lower()
-    sample_date = pd.to_datetime(filename.partition('-')[2].partition('#')[0])
+    sample_date_string = re.search(r'\d+-\d+-\d+',remaining)[0].strip()
+    sample_date = pd.to_datetime(sample_date_string, format=DATETIME_FORMAT)
+    # sample_date = pd.to_datetime(filename.partition('-')[2].partition('#')[0], format=DATETIME_FORMAT)
     run_number = filename.partition('#')[2].partition('.')[0]
     return sample_name, process_method, sample_date, run_number
 
@@ -84,9 +87,14 @@ def parse_abs_files(directory_path=None) -> pd.DataFrame:
 
 def _extract_lab_report_filename_info(filename):
     sample_name_date = filename.partition('-')[2]
-    sample_name, _, date_extension = sample_name_date.partition('-')
+    # sample_name, _, date_extension = sample_name_date.partition('-')
+    sample_name = re.split(r'\d+-\d+-\d+', sample_name_date)[0]\
+                     .partition('-')[0]\
+                     .strip()
     sample_name = sample_name.strip().lower()
-    sample_date = pd.to_datetime(date_extension.partition('.')[0].strip())
+    # sample_date_string = date_extension.partition('.')[0].strip()
+    sample_date_string = re.search(r'\d+-\d+-\d+',sample_name_date)[0].strip()
+    sample_date = pd.to_datetime(sample_date_string, format=DATETIME_FORMAT)
     return sample_name, sample_date
 
 def parse_lab_report(filepath) -> pd.DataFrame:
@@ -116,12 +124,22 @@ def get_wavelength_columns(df):
     return wavelength_columns
 
 
+def check_data_sample_name_match(df_lr, df_samples):
+    unmatched_names = set(df_lr['sample_name'].unique()) - set(df_samples['sample_name'].unique())
+    return unmatched_names
+
+
 def cache_cleaned_data():
     df_lr = parse_lab_reports()
     df_trms = parse_trm_files()
     # fill in missing 
+    unmatched_names = check_data_sample_name_match(df_lr, df_trms)
+    # TODO make this a warning
+    print(f'unable to match sample lab reports named {unmatched_names}')
     df = df_trms.join(df_lr.set_index('sample_name')[['Ammonia-N']], on='sample_name')\
                                         .reset_index(drop=True)
+    
+    df = df.dropna(subset=['Ammonia-N'])
     # df.fillna(0, inplace=True)
     df.to_csv(DATA_DIR/'training_data.csv', index=False)
 
