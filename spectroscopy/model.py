@@ -3,6 +3,7 @@ from pathlib import Path
 
 from lightgbm import LGBMRegressor
 import numpy as np
+import pandas as pd
 import pickle
 from pprint import pprint
 from sklearn.ensemble import RandomForestRegressor
@@ -10,7 +11,6 @@ from sklearn.feature_selection import SelectFromModel
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
-# from sklearn.utils import check_arrays
 
 from spectroscopy.utils import (
     load_training_data,
@@ -44,8 +44,9 @@ def score_model(model, X_train, y_train, X_test, y_test):
     }
 
 def _define_model():
-    return RandomForestRegressor(random_state=10, max_depth=20, n_estimators=100)
-    # return RandomForestRegressor(random_state=10)
+    # return RandomForestRegressor(random_state=10, max_depth=20, n_estimators=100)
+    # return LGBMRegressor()
+    return RandomForestRegressor(random_state=10)
 
 
 
@@ -54,8 +55,10 @@ def train_ammonia_n_model(model_dir=None):
         model_dir = MODEL_DIR
     model_dir = Path(model_dir)
     df = load_training_data()
+    df['process_method'] = pd.get_dummies(df[['process_method']].fillna(''))
     feature_columns = get_wavelength_columns(df)
     feature_columns.append('integration_time')
+    feature_columns.append('process_method')
     X, y = df[feature_columns], df['Ammonia-N']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=10)
     model = _define_model()
