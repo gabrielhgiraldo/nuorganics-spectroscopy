@@ -11,6 +11,7 @@ from sklearn.feature_selection import SelectFromModel
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import Normalizer
 from sklearn.decomposition import PCA
 
 from spectroscopy.utils import (
@@ -66,6 +67,7 @@ def train_ammonia_n_model(model_dir=None):
     feature_columns = extract_features(df)
     X, y = df[feature_columns], df['Ammonia-N']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=10)
+    print(f'total samples:{len(df)} training on:{len(X_train)} testing on {len(X_test)}')
     model = _define_model()
     model.fit(X_train, y_train)
     baseline_scores = score_model(model, X_train, y_train, X_test, y_test)
@@ -84,9 +86,24 @@ def train_ammonia_n_model(model_dir=None):
     feature_selector = model_pipeline.named_steps['feature_selector']
     selected_features = X_test.columns[feature_selector.get_support()]
     print('selected important features:', selected_features)
-    print('reduced features scores:')
+    print('normalized + reduced feature scores:')
     pprint(selected_scores)
     
+    model_pipeline = Pipeline([
+        ('normalizer_1', Normalizer()),
+        ('feature_selector', SelectFromModel(_define_model())),
+        ('normalizer_2', Normalizer()),
+        # ('PCA', PCA()),
+        ('model', model)
+    ])
+    model_pipeline.fit(X_train, y_train)
+    selected_scores = score_model(model_pipeline, X_train, y_train, X_test, y_test)
+    # print out the selected features
+    feature_selector = model_pipeline.named_steps['feature_selector']
+    selected_features = X_test.columns[feature_selector.get_support()]
+    print('selected important features:', selected_features)
+    print('reduced features scores:')
+    pprint(selected_scores)
 
     print('saving fit graph')
     plot_fit(y_test, model_pipeline.predict(X_test))
