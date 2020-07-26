@@ -32,7 +32,6 @@ def _extract_spect_filename_info(filename):
     process_method = process_method.lower()
     sample_date_string = re.search(r'\d+-\d+-\d+',remaining)[0].strip()
     sample_date = pd.to_datetime(sample_date_string, format=DATETIME_FORMAT)
-    # sample_date = pd.to_datetime(filename.partition('-')[2].partition('#')[0], format=DATETIME_FORMAT)
     run_number = filename.partition('#')[2].partition('.')[0]
     return sample_name, process_method, sample_date, run_number
 
@@ -45,7 +44,7 @@ def _extract_integration_time(extra_info):
                      .partition('ms')[0]
 
 
-def parse_spect_file(path, drop_neg_values=False):
+def parse_spect_file(path):
     path = Path(path)
     df = pd.read_csv(path)
     extra_info = df.columns[0]
@@ -54,10 +53,6 @@ def parse_spect_file(path, drop_neg_values=False):
              .str.partition(' ')
     wavelengths = data[0].astype(float)
     values = data[2].astype(float)
-    if drop_neg_values:
-        mask = values > 0
-        values = values[mask]
-        wavelengths = wavelengths[mask]
     sample_df = pd.DataFrame([values.values], columns=wavelengths)
     sample_df['extra_info'] = extra_info
     sample_df['integration_time'] = _extract_integration_time(extra_info)
@@ -87,12 +82,10 @@ def parse_abs_files(directory_path=None) -> pd.DataFrame:
 
 def _extract_lab_report_filename_info(filename):
     sample_name_date = filename.partition('-')[2]
-    # sample_name, _, date_extension = sample_name_date.partition('-')
     sample_name = re.split(r'\d+-\d+-\d+', sample_name_date)[0]\
                      .partition('-')[0]\
                      .strip()
     sample_name = sample_name.strip().lower()
-    # sample_date_string = date_extension.partition('.')[0].strip()
     sample_date_string = re.search(r'\d+-\d+-\d+',sample_name_date)[0].strip()
     sample_date = pd.to_datetime(sample_date_string, format=DATETIME_FORMAT)
     return sample_name, sample_date
@@ -123,7 +116,7 @@ def get_wavelength_columns(df):
             pass
     return wavelength_columns
 
-
+# TODO: incorporate sample date
 def check_data_sample_name_match(df_lr, df_samples):
     unmatched_names = set(df_lr['sample_name'].unique()) - set(df_samples['sample_name'].unique())
     return unmatched_names
@@ -132,15 +125,20 @@ def check_data_sample_name_match(df_lr, df_samples):
 def cache_cleaned_data():
     df_lr = parse_lab_reports()
     df_trms = parse_trm_files()
-    # fill in missing 
+    # fill negative values of trms
+    # wavelength_columns = get_wavelength_columns(df_trms)
+    # set trms that are < 0 to 0
+    num = df_trms._get_numeric_data()
+    num[num < 0] = 0
     unmatched_names = check_data_sample_name_match(df_lr, df_trms)
-    # TODO make this a warning
+    # TODO: make this a warning
     print(f'unable to match sample lab reports named {unmatched_names}')
-    df = df_trms.join(df_lr.set_index('sample_name')[['Ammonia-N']], on='sample_name')\
+    lab_report_columns = ['Ammonia-N', 'filename', 'Moisture']
+    lr_to_join = df_lr.set_index(['sample_name', 'sample_date'])[lab_report_columns]
+    df = df_trms.join(lr_to_join, on=['sample_name', 'sample_date'], lsuffix='_trm', rsuffix='_lr')\
                                         .reset_index(drop=True)
-    
+    # drop null Ammonia-N (unmatched)
     df = df.dropna(subset=['Ammonia-N'])
-    # df.fillna(0, inplace=True)
     df.to_csv(DATA_DIR/'training_data.csv', index=False)
 
 
@@ -158,7 +156,7 @@ def plot_fit(y_true, y_pred, save=True):
     plt.xlim(0,0.6)
     plt.ylim(0,0.6)
     if save:
-        plt.savefig('ammonia_prediction_vs_truth.png')
+        plt.savefig('prediction_vs_truth.png')
 
 def plot_residuals(y_true, y_pred, save=True):
     plt.figure(figsize=(10,10))
@@ -167,14 +165,14 @@ def plot_residuals(y_true, y_pred, save=True):
     plt.ylabel('residual')
     plt.title('Residuals')
     if save:
-        plt.savefig('ammonia_prediction_vs_truth.png')
+        plt.savefig('residuals.png')
 
 
 def get_highest_error_data(y_true, model, X):
     y_pred = model.predict(X)
     residuals = y_true - y_pred
     max_error_indices = np.argmax(residuals)
-    
+
 
 # def highlight_important_wavelengths(wavelengths):
 #     plt.figure(figsize=(20,10))
