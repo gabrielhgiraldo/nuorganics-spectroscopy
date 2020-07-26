@@ -13,6 +13,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import Normalizer
 from sklearn.decomposition import PCA
+from skorch.regressor import NeuralNetRegressor
+from torch import nn
+import torch.nn.functional as F
+
 
 from spectroscopy.utils import (
     load_training_data,
@@ -22,6 +26,26 @@ from spectroscopy.utils import (
 
 MODEL_DIR = Path('bin/model/')
 MODEL_FILENAME = 'model.pkl'
+class RegressorModule(nn.Module):
+    def __init__(
+            self,
+            num_units=10,
+            nonlin=F.relu,
+    ):
+        super(RegressorModule, self).__init__()
+        self.num_units = num_units
+        self.nonlin = nonlin
+
+        self.dense0 = nn.Linear(20, num_units)
+        self.nonlin = nonlin
+        self.dense1 = nn.Linear(num_units, 10)
+        self.output = nn.Linear(10, 1)
+
+    def forward(self, X, **kwargs):
+        X = self.nonlin(self.dense0(X))
+        X = F.relu(self.dense1(X))
+        X = self.output(X)
+        return X
 
 def mean_absolute_percentage_error(y_true, y_pred): 
     # y_true, y_pred = check_arrays(y_true, y_pred)
@@ -46,9 +70,15 @@ def score_model(model, X_train, y_train, X_test, y_test):
     }
 
 def _define_model():
+    return NeuralNetRegressor(
+        RegressorModule,
+        max_epochs=20,
+        lr=0.1,
+#     device='cuda',  # uncomment this to train with CUDA
+    )
     # return RandomForestRegressor(random_state=10, max_depth=20, n_estimators=100)
     # return LGBMRegressor()
-    return RandomForestRegressor(random_state=10)
+    # return RandomForestRegressor(random_state=10)    
 
 
 def get_features(df):
@@ -91,7 +121,7 @@ def train_ammonia_n_model(model_dir=None):
     print('selected important features:', selected_features)
     print('reduced feature scores:')
     pprint(selected_scores)
-    
+
     # select K best + normalize
     # model_pipeline = Pipeline([
     #     ('normalizer_1', Normalizer()),
