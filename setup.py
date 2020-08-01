@@ -12,5 +12,6 @@ setup(
     long_description_content_type="text/markdown",
     author="Gabriel Giraldo-Wingler",
     author_email="Gabrielhgiraldo@gmail.com",
-    install_requires=('dash')
+    install_requires=('dash'),
+    include_package_data=True
 )
