@@ -4,8 +4,8 @@ import os
 
 import pandas as pd
 
-from spectroscopy.model import load_model
-from spectroscopy.utils import get_wavelength_columns, parse_trm_files
+from spectroscopy.model import load_model, get_features
+from spectroscopy.utils import parse_trm_files
 
 # Construct the argument parser
 ap = argparse.ArgumentParser()
@@ -26,9 +26,13 @@ try:
 except FileNotFoundError:
     print(f'no samples found at the provided path {sample_path}')
     os.system.exit()
+# TODO have feature extraction happen in model pipeline
 print('calculating samples Ammonia-N')
-feature_columns = get_wavelength_columns(df_samples)
-feature_columns.append('integration_time')
+df_samples['process_method'].fillna('none', inplace=True)
+df_samples['process_method'] = df_samples['process_method'].astype(str)
+# df = df[df['process_method'].isin(['ground','wet'])]
+df_samples = pd.concat([df_samples, pd.get_dummies(df_samples['process_method'])], axis=1)
+feature_columns = get_features(df_samples)
 X_samples = df_samples[feature_columns]
 ammonia_N = model.predict(X_samples)
 results_df = pd.DataFrame({

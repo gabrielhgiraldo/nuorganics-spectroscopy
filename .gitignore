@@ -28,3 +28,6 @@ bin
 
 # virtual environment
 .spectroscopy
+
+# egg files
+*.egg-info
