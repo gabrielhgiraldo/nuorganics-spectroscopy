@@ -18,21 +18,21 @@ OUTPUT_DIR = config_parser.get('paths', 'output_dir')
 
 app = dash.Dash(__name__)
 # DUMMY DATA
-data = pd.read_csv(Path(__file__).parent/'ammonia_N.csv')
+# data = pd.read_csv(Path(__file__).parent/'ammonia_N.csv')
 
 
 app.layout = html.Div([
     html.H3('Nuorganics Spectroscopy Modeling'),
-    DataTable(
-        id='results-data-table',
-        columns=[{"name": column, "id": column} for column in data.columns],
-        data=data.to_dict('records'),
-        fixed_rows={'headers': True},
-        style_table={
-            'height': '300px',
-            'overflowY': 'auto'
-        }
-    ),
+    # DataTable(
+    #     id='results-data-table',
+    #     columns=[{"name": column, "id": column} for column in data.columns],
+    #     data=data.to_dict('records'),
+    #     fixed_rows={'headers': True},
+    #     style_table={
+    #         'height': '300px',
+    #         'overflowY': 'auto'
+    #     }
+    # ),
     dcc.Upload(
         id='upload-training',
         multiple=True,
@@ -50,7 +50,8 @@ app.layout = html.Div([
             'Drag and Drop or ',
             html.A('Select Files')
         ]),
-    )
+    ),
+    html.Button('train model')
 ])
 # TODO: add ability to specify data location
 # TODO: add ability to retrain model(s)
