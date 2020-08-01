@@ -1,1 +1,2 @@
 include spectroscopy/VERSION
+include spectroscopy/*.ini
