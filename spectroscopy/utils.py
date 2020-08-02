@@ -106,12 +106,16 @@ def parse_lab_reports(lab_report_directory=None) -> pd.DataFrame:
     return pd.concat([parse_lab_report(lr_filepath) for lr_filepath in DATA_DIR.glob('Lab Report*.csv')])
 
 
-def get_wavelength_columns(df):
+def get_wavelength_columns(df, lower_bound=None):
     wavelength_columns = []
     for column in df.columns:
         try:
-            float(column)
-            wavelength_columns.append(column)
+            value = float(column)
+            if lower_bound is not None:
+                if value > 850:
+                    wavelength_columns.append(column)
+            else:
+                wavelength_columns.append(column)
         except:
             pass
     return wavelength_columns
@@ -147,14 +151,16 @@ def load_training_data() -> pd.DataFrame:
 
 
 def plot_fit(y_true, y_pred, save=True):
+    max_value = np.max(y_true)
+    max_value += max_value/10
     plt.figure(figsize=(10,10))
     plt.scatter(y_true, y_pred, alpha=0.5)
     plt.title('Ammonia-N Prediction from Machine Learning Spectroscopy Inference Model')
-    plt.plot(np.linspace(0, 0.6, len(y_true)), np.linspace(0, 0.6, len(y_true)))
+    plt.plot(np.linspace(0, max_value, len(y_true)), np.linspace(0, max_value, len(y_true)))
     plt.xlabel('True Ammonia-N')
     plt.ylabel('Predicted Ammonia-N')
-    plt.xlim(0,0.6)
-    plt.ylim(0,0.6)
+    plt.xlim(0,max_value)
+    plt.ylim(0,max_value)
     if save:
         plt.savefig('prediction_vs_truth.png')
 
