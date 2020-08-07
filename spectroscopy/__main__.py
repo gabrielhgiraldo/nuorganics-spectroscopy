@@ -1,5 +1,5 @@
 from spectroscopy.app import app
-# TODO: configurating parsing
+
 def main():
     app.run_server()
 
