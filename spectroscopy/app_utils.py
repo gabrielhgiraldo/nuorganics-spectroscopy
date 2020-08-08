@@ -3,7 +3,11 @@ from configparser import ConfigParser
 import logging
 from pathlib import Path
 
-from spectroscopy.utils import extract_data, load_extracted_training_data
+from spectroscopy.utils import (
+    extract_data,
+    get_wavelength_columns,
+    load_extracted_training_data
+)
 
 INTERNAL_CONFIG_FILEPATH = Path(__file__).parent / 'config.ini'
 USER_CONFIG_PATH = Path('config.ini')
@@ -87,4 +91,6 @@ def upload_training_data(contents, filenames):
         decoded = base64.b64decode(content_string)
         with open(training_data_path/filename, 'wb') as f:
             f.write(decoded)
-    return extract_data(training_data_path).to_dict('records')
+    data = extract_data(training_data_path)
+    data = data.drop(get_wavelength_columns(data), axis=1)
+    return data.to_dict('records')

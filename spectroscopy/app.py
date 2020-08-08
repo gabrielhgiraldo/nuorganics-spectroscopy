@@ -87,6 +87,9 @@ def on_save(n_clicks, *args):
 def on_upload_training(contents, filenames, last_modifieds):
     if contents is not None and filenames is not None:
         return upload_training_data(contents, filenames)
+    else:
+        raise PreventUpdate
+
     
 
 app.layout = render_layout

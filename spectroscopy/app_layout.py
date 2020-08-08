@@ -17,7 +17,7 @@ def training_data_table():
         data = data.drop(get_wavelength_columns(data), axis=1)
     except FileNotFoundError:
         data = pd.DataFrame()
-    return DataTable(
+    return dcc.Loading(DataTable(
         id='training-data-table',
         columns=[{"name": column, "id": column} for column in data.columns],
         data=data.to_dict('records'),
@@ -33,7 +33,7 @@ def training_data_table():
             'minWidth': '180px', 'width': '180px', 'maxWidth': '180px',
             'whiteSpace': 'normal'
         }    
-    )
+    ))
 
 def training_uploader():
     return html.Div([
