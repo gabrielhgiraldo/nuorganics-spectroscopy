@@ -31,3 +31,5 @@ bin
 
 # egg files
 *.egg-info
+
+*.ini
