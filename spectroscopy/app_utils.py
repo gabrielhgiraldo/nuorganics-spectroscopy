@@ -1,3 +1,4 @@
+import base64
 from configparser import ConfigParser
 import logging
 from pathlib import Path
@@ -55,8 +56,13 @@ def save_user_settings(new_settings_values):
     with USER_CONFIG_PATH.open('w') as f:
         user_config.write(f)
 
+
+def get_training_data_path():
+    return Path(get_user_settings()['paths']['training-data-path'])
+
+    
 def load_training_data():
-    training_data_path = Path(get_user_settings()['paths']['training-data-path'])
+    training_data_path = get_training_data_path()
     try:
         logger.info('loading extracted data')
         return load_extracted_training_data(training_data_path)
@@ -69,5 +75,16 @@ def load_training_data():
         try:
             return extract_data(training_data_path)
         except FileNotFoundError as e:
-            logger.exception(e)
+            logger.warning(e)
             raise
+
+
+def upload_training_data(contents, filenames):
+    training_data_path = get_training_data_path()
+    training_data_path.mkdir(exist_ok=True, parents=True)
+    for content, filename in zip(contents, filenames):
+        content_type, _, content_string = content.partition(',')
+        decoded = base64.b64decode(content_string)
+        with open(training_data_path/filename, 'wb') as f:
+            f.write(decoded)
+    return extract_data(training_data_path).to_dict('records')

@@ -36,32 +36,35 @@ def training_data_table():
     )
 
 def training_uploader():
-    return dcc.Upload(
-        id='upload-training',
-        multiple=True,
-        style={
-            'width': '100%',
-            'height': '60px',
-            'lineHeight': '60px',
-            'borderWidth': '1px',
-            'borderStyle': 'dashed',
-            'borderRadius': '5px',
-            'textAlign': 'center',
-            'margin': '10px'
-        },
-        children=html.Div([
-            'Drag and Drop or ',
-            html.A('Select Files')
-        ]),
-    )
+    return html.Div([
+        dcc.Upload(
+            id='upload-training',
+            multiple=True,
+            style={
+                'width': '100%',
+                'height': '60px',
+                'lineHeight': '60px',
+                'borderWidth': '1px',
+                'borderStyle': 'dashed',
+                'borderRadius': '5px',
+                'textAlign': 'center',
+                'margin': '10px'
+            },
+            children=html.Div([
+                'Drag and Drop or ',
+                html.A('Select Files')
+            ]),
+        )
+    ])
 
 
 # TODO: adjust column ordering in training datatable
+# TODO: add 'extract data' button
 def training_content():
     return html.Div([
         training_uploader(),
         training_data_table(),
-        html.Button('train model', id='train-button')
+        html.Button('train model', id='train-button', n_clicks=0),
     ])
 
     
@@ -90,7 +93,7 @@ def settings_content():
         id='settings-content',
         children=[
             *setting_inputs(),
-            html.Button('save settings',id='save-settings', n_clicks=0),
+            html.Button('save settings', id='save-settings', n_clicks=0),
             html.Div(id='settings-feedback')
         ]
     )

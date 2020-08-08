@@ -15,7 +15,7 @@ from spectroscopy.app_layout import (
 )
 from spectroscopy.app_utils import (
     get_user_settings, 
-    save_user_settings,
+    save_user_settings, upload_training_data,
 )
 
 # TODO: add ability to specify data location
@@ -77,6 +77,17 @@ def on_save(n_clicks, *args):
             return [f'settings saved']
     else:
         raise PreventUpdate       
+
+# upload data callback
+@app.callback(
+    output=Output('training-data-table', 'data'),
+    inputs=[Input('upload-training', 'contents')],
+    state=[State('upload-training', 'filename'),
+           State('upload-training', 'last_modified')])
+def on_upload_training(contents, filenames, last_modifieds):
+    if contents is not None and filenames is not None:
+        return upload_training_data(contents, filenames)
+    
 
 app.layout = render_layout
 
