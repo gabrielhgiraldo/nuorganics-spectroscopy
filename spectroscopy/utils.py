@@ -69,16 +69,21 @@ def parse_spect_file(path):
 def parse_trm_files(directory_path=None) -> pd.DataFrame:
     if directory_path is None:
         directory_path = DATA_DIR
-    directory = Path(directory_path)
-    return pd.concat([parse_spect_file(filepath) for filepath in directory.glob("*.TRM")])
+    directory_path = Path(directory_path)
+    try:
+        return pd.concat([parse_spect_file(filepath) for filepath in directory_path.glob("*.TRM")])
+    except ValueError:
+        raise FileNotFoundError(f'no .TRM files found at {directory_path}')
 
 
 def parse_abs_files(directory_path=None) -> pd.DataFrame:
     if directory_path is None:
         directory_path = DATA_DIR
-    directory = Path(directory_path)
-    return pd.concat([parse_spect_file(filepath) for filepath in directory.glob("*.ABS")])
-
+    directory_path = Path(directory_path)
+    try:
+        return pd.concat([parse_spect_file(filepath) for filepath in directory_path.glob("*.ABS")])
+    except ValueError:
+        raise FileNotFoundError(f'no .ABS files found at {directory_path}')
 
 def _extract_lab_report_filename_info(filename):
     sample_name_date = filename.partition('-')[2]
@@ -103,8 +108,11 @@ def parse_lab_reports(lab_report_directory=None) -> pd.DataFrame:
     if lab_report_directory is None:
         lab_report_directory = DATA_DIR
     lab_report_directory = Path(lab_report_directory)
-    return pd.concat([parse_lab_report(lr_filepath) for lr_filepath in DATA_DIR.glob('Lab Report*.csv')])
-
+    try:
+        return pd.concat([parse_lab_report(lr_filepath) for 
+                                lr_filepath in lab_report_directory.glob('Lab Report*.csv')])
+    except ValueError:
+        raise FileNotFoundError(f'no lab report files found at {lab_report_directory}')
 
 def get_wavelength_columns(df, lower_bound=None):
     wavelength_columns = []
@@ -126,28 +134,36 @@ def check_data_sample_name_match(df_lr, df_samples):
     return unmatched_names
 
 
-def cache_cleaned_data():
-    df_lr = parse_lab_reports()
-    df_trms = parse_trm_files()
-    # fill negative values of trms
-    # wavelength_columns = get_wavelength_columns(df_trms)
+def extract_data(data_path=None):
+    if data_path is None:
+        data_path = DATA_DIR
+    df_lr = parse_lab_reports(data_path)
+    df_trms = parse_trm_files(data_path)
     # set trms that are < 0 to 0
     num = df_trms._get_numeric_data()
     num[num < 0] = 0
     unmatched_names = check_data_sample_name_match(df_lr, df_trms)
     # TODO: make this a warning
-    print(f'unable to match sample lab reports named {unmatched_names}')
+    if len(unmatched_names) > 0:
+        print(f'unable to match sample lab reports named {unmatched_names}')
     lab_report_columns = ['Ammonia-N', 'filename', 'Moisture']
     lr_to_join = df_lr.set_index(['sample_name', 'sample_date'])[lab_report_columns]
     df = df_trms.join(lr_to_join, on=['sample_name', 'sample_date'], lsuffix='_trm', rsuffix='_lr')\
                                         .reset_index(drop=True)
     # drop null Ammonia-N (unmatched)
     df = df.dropna(subset=['Ammonia-N'])
-    df.to_csv(DATA_DIR/'training_data.csv', index=False)
+    df.to_csv(data_path/TRAINING_DATA_FILENAME, index=False)
+    return df
 
 
-def load_training_data() -> pd.DataFrame:
-    return pd.read_csv(DATA_DIR/TRAINING_DATA_FILENAME)
+def load_extracted_training_data(path=None) -> pd.DataFrame:
+    if path is None:
+        path = DATA_DIR/TRAINING_DATA_FILENAME
+    else:
+        path = Path(path)
+        if path.is_dir():
+            path = path / TRAINING_DATA_FILENAME
+    return pd.read_csv(path)
 
 
 def plot_fit(y_true, y_pred, save=True):

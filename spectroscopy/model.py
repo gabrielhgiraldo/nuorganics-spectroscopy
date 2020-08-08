@@ -19,7 +19,7 @@ import torch.nn.functional as F
 
 
 from spectroscopy.utils import (
-    load_training_data,
+    load_extracted_training_data,
     get_wavelength_columns,
     plot_fit,
 )
@@ -93,7 +93,7 @@ def train_ammonia_n_model(model_dir=None):
     if model_dir is None:
         model_dir = MODEL_DIR
     model_dir = Path(model_dir)
-    df = load_training_data()
+    df = load_extracted_training_data()
     # TODO: have preprocessing and feature extraction occur in model pipeline
     df['process_method'].fillna('none', inplace=True)
     df['process_method'] = df['process_method'].astype(str)

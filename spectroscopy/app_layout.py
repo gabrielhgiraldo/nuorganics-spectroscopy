@@ -1,13 +1,22 @@
+from pathlib import Path
+
+import pandas as pd
+
 from spectroscopy.utils import get_wavelength_columns
-from spectroscopy.app_utils import get_user_settings
+from spectroscopy.app_utils import get_user_settings, load_training_data
 import dash_core_components as dcc
 import dash_html_components as html
 from dash_table import DataTable
 
 # TODO: fix certain columns on the left
 # TODO: order columns
-def training_data_table(data):
-    data = data.drop(get_wavelength_columns(data),axis=1)
+
+def training_data_table():
+    try:
+        data = load_training_data()
+        data = data.drop(get_wavelength_columns(data), axis=1)
+    except FileNotFoundError:
+        data = pd.DataFrame()
     return DataTable(
         id='training-data-table',
         columns=[{"name": column, "id": column} for column in data.columns],
@@ -45,11 +54,13 @@ def training_uploader():
             html.A('Select Files')
         ]),
     )
+
+
 # TODO: adjust column ordering in training datatable
-def training_content(data):
+def training_content():
     return html.Div([
         training_uploader(),
-        training_data_table(data),
+        training_data_table(),
         html.Button('train model', id='train-button')
     ])
 

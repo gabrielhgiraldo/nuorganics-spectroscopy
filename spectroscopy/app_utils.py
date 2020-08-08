@@ -2,6 +2,7 @@ from configparser import ConfigParser
 import logging
 from pathlib import Path
 
+from spectroscopy.utils import extract_data, load_extracted_training_data
 
 INTERNAL_CONFIG_FILEPATH = Path(__file__).parent / 'config.ini'
 USER_CONFIG_PATH = Path('config.ini')
@@ -17,10 +18,6 @@ DEFAULT_USER_CONFIGS = {
 
 logger = logging.getLogger(__name__)
 
-def get_internal_settings():
-    internal_config = ConfigParser()
-    internal_config.read(INTERNAL_CONFIG_FILEPATH)
-    return internal_config
 
 def get_user_settings(setting=None):
     user_config = ConfigParser()
@@ -52,12 +49,25 @@ def save_user_settings(new_settings_values):
                 raise ValueError(f'{setting} is required')
     
     user_config.update(new_settings)
-    internal_settings = get_internal_settings()
-    user_config_path = internal_settings.get('paths', 'user_configuration_path')
-    user_config_path = Path(user_config_path)
     logger.info(f'new settings {new_settings}')
     logger.info(f'saving user settings at path {USER_CONFIG_PATH}')
     USER_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     with USER_CONFIG_PATH.open('w') as f:
         user_config.write(f)
 
+def load_training_data():
+    training_data_path = Path(get_user_settings()['paths']['training-data-path'])
+    try:
+        logger.info('loading extracted data')
+        return load_extracted_training_data(training_data_path)
+    except FileNotFoundError:
+        message = (
+            f'no previously extracted data found at {training_data_path}'
+            'extracting data from raw files'
+        )
+        logger.warning(message)
+        try:
+            return extract_data(training_data_path)
+        except FileNotFoundError as e:
+            logger.exception(e)
+            raise

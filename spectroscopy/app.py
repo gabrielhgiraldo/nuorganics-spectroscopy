@@ -7,19 +7,16 @@ import webbrowser
 import dash
 from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State
-import dash_core_components as dcc
-import dash_html_components as html
-import pandas as pd
 
 from spectroscopy.app_layout import (
     render_layout,
     settings_content,
-    training_data_table,
-    training_uploader,
     training_content,
 )
-from spectroscopy.app_utils import get_internal_settings, get_user_settings, save_user_settings
-from spectroscopy.utils import load_training_data
+from spectroscopy.app_utils import (
+    get_user_settings, 
+    save_user_settings,
+)
 
 # TODO: add ability to specify data location
 # TODO: add ability to retrain model(s)
@@ -29,7 +26,7 @@ from spectroscopy.utils import load_training_data
 
 # load internal configurations
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
-training_data = load_training_data()
+
 # TODO: add ability to change configurations
 def get_triggered_id():
     ctx = dash.callback_context
@@ -48,7 +45,7 @@ def render_content(tab):
         return settings_content()
     elif tab == 'training-tab':
         # TODO: load training data
-        return training_content(training_data)
+        return training_content()
     else:
         return ['no content available for tab value']
 
@@ -87,7 +84,7 @@ app.layout = render_layout
 if __name__ == '__main__':
     port = 5000
     if not os.environ.get("WERKZEUG_RUN_MAIN"):
-        Timer(1, lambda: webbrowser.open_new("http://localhost:{}".format(port))).start()
+        Timer(1, lambda: webbrowser.open_new(f"http://localhost:{port}")).start()
 
     # Otherwise, continue as normal
     app.server.run(debug=True, port=port)
