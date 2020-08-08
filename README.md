@@ -1,19 +1,34 @@
 # nuorganics-spectroscopy
+
 calibration models for nuorganics spectroscopy
 
-# downloading the code
+## UI + system installable
+
+* install python
+* open up a shell (e.g. powershell, terminal, commandline, etc.)
+* `python3 -m pip install git+https://github.com/gabrielhgiraldo/nuorganics-spectroscopy.git`
+* `python3 -m spectroscopy`
+* a browser should automatically open with the spectroscopy UI
+
+## Developer
+
+### downloading the code
+
 * download this repository
 
-# data
+### data
+
 place all Lab Report files and corresponding .TRM files into a folder named 'data'  
 located at the root directory (spectroscopy/data)
 
-# training the model
+### training the model
+
 after getting the data, run the script `train_ammonia_model.py`.  
 You should now have a folder spectroscopy/bin/model which contains the  
 model file and the scores achieved by that model on the train and test sets
 
-# using the model
+### using the model
+
 * open up your terminal
 * navigate to the folder where you downloaded the code using the `cd` command
 * execute the command `python3 get_sample_ammonia_nitrogen.py -sp "path\to\samples\"`
