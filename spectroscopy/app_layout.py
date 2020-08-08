@@ -1,18 +1,29 @@
+from spectroscopy.utils import get_wavelength_columns
 from spectroscopy.app_utils import get_user_settings
 import dash_core_components as dcc
 import dash_html_components as html
 from dash_table import DataTable
 
+# TODO: fix certain columns on the left
+# TODO: order columns
 def training_data_table(data):
+    data = data.drop(get_wavelength_columns(data),axis=1)
     return DataTable(
         id='training-data-table',
         columns=[{"name": column, "id": column} for column in data.columns],
         data=data.to_dict('records'),
         fixed_rows={'headers': True},
         style_table={
-            'height': '300px',
-            'overflowY': 'auto'
-        }
+            'height': '800px',
+            'overflowY': 'auto',
+            'overflowX':'auto'
+        },
+        style_cell={
+            'height': 'auto',
+            # all three widths are needed
+            'minWidth': '180px', 'width': '180px', 'maxWidth': '180px',
+            'whiteSpace': 'normal'
+        }    
     )
 
 def training_uploader():
@@ -34,11 +45,11 @@ def training_uploader():
             html.A('Select Files')
         ]),
     )
-
+# TODO: adjust column ordering in training datatable
 def training_content(data):
     return html.Div([
-        training_data_table(data),
         training_uploader(),
+        training_data_table(data),
         html.Button('train model', id='train-button')
     ])
 
@@ -49,10 +60,16 @@ def setting_inputs():
     for _, section in user_settings.items():
         for setting, value in section.items():
             inputs.append(html.Div(
-                [
+                children=[
                     html.Label(setting),
-                    dcc.Input(id=setting,value=value, placeholder=f'e.g. {value}')
-                ]
+                    dcc.Input(
+                        id=setting,
+                        value=value,
+                        placeholder=f'e.g. {value}',
+                        style={'width':'100%'}
+                    )
+                ],
+                style={'padding':'10px'}
             ))
     return inputs
     
