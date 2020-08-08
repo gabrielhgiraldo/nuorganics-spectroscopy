@@ -4,6 +4,7 @@ from pathlib import Path
 
 
 INTERNAL_CONFIG_FILEPATH = Path(__file__).parent / 'config.ini'
+USER_CONFIG_PATH = Path('config.ini')
 DEFAULT_USER_CONFIGS = {
     'paths':{
         'project-path':str(Path().home()/'spectroscopy'),
@@ -21,17 +22,14 @@ def get_internal_settings():
     internal_config.read(INTERNAL_CONFIG_FILEPATH)
     return internal_config
 
-
-def get_user_settings():
+def get_user_settings(setting=None):
     user_config = ConfigParser()
     # set default settings in case no config file is found
     user_config.read_dict(DEFAULT_USER_CONFIGS)
-    user_config_path = get_internal_settings().get('paths', 'user_configuration_path')
-    user_config_path = Path(user_config_path)
-    if user_config_path.exists():
-        user_config.read(user_config_path)
+    if USER_CONFIG_PATH.exists():
+        user_config.read(USER_CONFIG_PATH)
     else:
-        logger.warn(f'no configuration file found at {user_config_path}')
+        logger.warn(f'no configuration file found at {USER_CONFIG_PATH}')
     return user_config
 
 
@@ -58,8 +56,8 @@ def save_user_settings(new_settings_values):
     user_config_path = internal_settings.get('paths', 'user_configuration_path')
     user_config_path = Path(user_config_path)
     logger.info(f'new settings {new_settings}')
-    logger.info(f'saving user settings at path {user_config_path}')
-    user_config_path.parent.mkdir(parents=True, exist_ok=True)
-    with user_config_path.open('w') as f:
+    logger.info(f'saving user settings at path {USER_CONFIG_PATH}')
+    USER_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with USER_CONFIG_PATH.open('w') as f:
         user_config.write(f)
 
