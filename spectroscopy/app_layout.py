@@ -41,10 +41,12 @@ def training_content(data):
         training_uploader(),
         html.Button('train model', id='train-button')
     ])
+
+    
 def setting_inputs():
     user_settings = get_user_settings()
     inputs = []
-    for section_name, section in user_settings.items():
+    for _, section in user_settings.items():
         for setting, value in section.items():
             inputs.append(html.Div(
                 [
@@ -60,7 +62,7 @@ def settings_content():
         id='settings-content',
         children=[
             *setting_inputs(),
-            html.Button('save settings',id='settings-save-button'),
+            html.Button('save settings',id='save-settings'),
             html.Div(id='settings-feedback')
         ]
     )

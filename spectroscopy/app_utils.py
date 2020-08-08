@@ -5,7 +5,7 @@ from pathlib import Path
 INTERNAL_CONFIG_FILEPATH = Path(__file__).parent / 'config.ini'
 DEFAULT_USER_CONFIGS = {
     'paths':{
-        'project-path':'~/spectroscopy_modeling',
+        'project-path':'~/spectroscopy',
         'data-path':'%(project-path)s/data',
         'training-data-path':'%(data-path)s/training',
         'testing-data-path':'%(data-path)s/testing',
