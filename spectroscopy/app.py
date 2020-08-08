@@ -1,4 +1,8 @@
+import os
 from pathlib import Path
+from threading import Timer
+import webbrowser
+
 
 import dash
 from dash.exceptions import PreventUpdate
@@ -79,5 +83,11 @@ def on_save(n_clicks, *args):
 
 app.layout = render_layout
 
-if __name__ == "__main__":
-    app.server.run(debug=True)
+
+if __name__ == '__main__':
+    port = 5000
+    if not os.environ.get("WERKZEUG_RUN_MAIN"):
+        Timer(1, lambda: webbrowser.open_new("http://localhost:{}".format(port))).start()
+
+    # Otherwise, continue as normal
+    app.server.run(debug=True, port=port)
