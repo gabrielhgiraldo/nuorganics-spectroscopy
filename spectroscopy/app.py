@@ -2,7 +2,7 @@ from pathlib import Path
 
 import dash
 from dash.exceptions import PreventUpdate
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
 import dash_html_components as html
 import pandas as pd
@@ -49,31 +49,30 @@ def render_content(tab):
         return ['no content available for tab value']
 
 # save settings callback
-def generate_settings_callback_inputs():
+def generate_settings_callback_states():
     settings = get_user_settings()
-    inputs = [Input('save-settings', 'num_clicks')]
+    states = []
     for section in settings.values():
         for setting in section:
-            inpt = Input(setting, 'value')
-            inputs.append(inpt)
-    return inputs
+            state = State(setting, 'value')
+            states.append(state)
+    return states
 
     
 @app.callback(
     output=Output('settings-feedback','children'),
-    inputs=generate_settings_callback_inputs()
+    inputs=[Input('save-settings', 'n_clicks')],
+    state=generate_settings_callback_states()
 )
-def on_save(num_clicks, *args):
-    print('save_settings triggered', num_clicks, *args)
+def on_save(n_clicks, *args):
     input_id = get_triggered_id()
-    new_settings = args
     if input_id == 'save-settings':
-        # check for required values
-        for setting, value in new_settings.items():
-            if value is None:
-                return [f'{setting} is required']
+        new_setting_values = args
+        try:
+            save_user_settings(new_setting_values)
+        except ValueError as e:
+            return [f'{e}']
         else:
-            save_user_settings(new_settings)
             return [f'settings saved']
     else:
         raise PreventUpdate       

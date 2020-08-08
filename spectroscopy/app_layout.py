@@ -62,7 +62,7 @@ def settings_content():
         id='settings-content',
         children=[
             *setting_inputs(),
-            html.Button('save settings',id='save-settings'),
+            html.Button('save settings',id='save-settings', n_clicks=0),
             html.Div(id='settings-feedback')
         ]
     )

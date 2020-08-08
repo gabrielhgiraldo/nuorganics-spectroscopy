@@ -2,6 +2,7 @@ from configparser import ConfigParser
 import logging
 from pathlib import Path
 
+
 INTERNAL_CONFIG_FILEPATH = Path(__file__).parent / 'config.ini'
 DEFAULT_USER_CONFIGS = {
     'paths':{
@@ -34,11 +35,31 @@ def get_user_settings():
     return user_config
 
 
-def save_user_settings(new_settings):
+def save_user_settings(new_settings_values):        
     user_config = get_user_settings()
+    # TODO: deal with sections
+    if isinstance(new_settings_values, (list, tuple)):
+        new_settings_values = list(new_settings_values)
+        new_settings = {}
+        for section_name, section in user_config.items():
+            new_settings[section_name] = {}
+            for setting in section:
+                new_settings[section_name][setting] = new_settings_values.pop(0)
+    else:
+        new_settings = new_settings_values
+    # validate settings
+    for section_name, section in new_settings.items():
+        for setting, value in section.items():
+            if not value:
+                raise ValueError(f'{setting} is required')
+    
     user_config.update(new_settings)
     internal_settings = get_internal_settings()
     user_config_path = internal_settings.get('paths', 'user_configuration_path')
     user_config_path = Path(user_config_path)
-    user_config.write(user_config_path)
+    logger.info(f'new settings {new_settings}')
+    logger.info(f'saving user settings at path {user_config_path}')
+    user_config_path.parent.mkdir(parents=True, exist_ok=True)
+    with user_config_path.open('w') as f:
+        user_config.write(f)
 
