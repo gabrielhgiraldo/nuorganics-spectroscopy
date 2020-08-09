@@ -12,22 +12,37 @@ from dash_table import DataTable
 # TODO: order columns
 
 def training_data_table(data):
-    return DataTable(
-        id='training-data-table',
-        columns=[{"name": column, "id": column} for column in data.columns],
-        data=data.to_dict('records'),
-        fixed_rows={'headers': True},
-        style_table={
-            'height': '800px',
-            'overflowY': 'auto',
-            'overflowX':'auto'
-        },
-        style_cell={
-            'height': 'auto',
-            # all three widths are needed
-            'minWidth': '180px', 'width': '180px', 'maxWidth': '180px',
-            'whiteSpace': 'normal'
-        }    
+    return html.Div([
+        html.H3('Extracted Data'),
+        html.P(f'{len(data.index)} samples'),
+        DataTable(
+            id='training-data-table',
+            columns=[{"name": column, "id": column} for column in data.columns],
+            data=data.to_dict('records'),
+            fixed_rows={'headers': True},
+            style_table={
+                'height': '800px',
+                'overflowY': 'auto',
+                'overflowX':'auto'
+            },
+            style_cell={
+                # all three widths are needed
+                'minWidth': '180px',
+                'width': '180px',
+                'maxWidth': '180px',
+                #text overflow settings
+                'overflow':'hidden',
+                'textOverflow':'ellipsis'
+            },
+            tooltip_data=[
+                {
+                    column: {'value': str(value), 'type': 'markdown'}
+                    for column, value in row.items()
+                } for row in data.to_dict('rows')
+            ],
+            tooltip_duration=None
+        )],
+        style={'textAlign':'center'}
     )
 
 def training_uploader():
