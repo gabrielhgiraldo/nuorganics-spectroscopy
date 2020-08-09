@@ -1,5 +1,6 @@
 import os
-from pathlib import Path
+
+from spectroscopy.utils import get_wavelength_columns
 from threading import Timer
 import webbrowser
 
@@ -11,10 +12,10 @@ from dash.dependencies import Input, Output, State
 from spectroscopy.app_layout import (
     render_layout,
     settings_content,
-    training_content,
+    training_content, training_data_table,
 )
 from spectroscopy.app_utils import (
-    get_user_settings, 
+    get_user_settings, load_training_data, 
     save_user_settings, upload_training_data,
 )
 
@@ -44,7 +45,6 @@ def render_content(tab):
     if tab == 'settings-tab':
         return settings_content()
     elif tab == 'training-tab':
-        # TODO: load training data
         return training_content()
     else:
         return ['no content available for tab value']
@@ -80,15 +80,21 @@ def on_save(n_clicks, *args):
 
 # upload data callback
 @app.callback(
-    output=Output('training-data-table', 'data'),
+    output=Output('training-table-wrapper', 'children'),
     inputs=[Input('upload-training', 'contents')],
     state=[State('upload-training', 'filename'),
            State('upload-training', 'last_modified')])
-def on_upload_training(contents, filenames, last_modifieds):
+def update_training_data(contents, filenames, last_modifieds):
     if contents is not None and filenames is not None:
-        return upload_training_data(contents, filenames)
+        return [training_data_table(upload_training_data(contents, filenames))]
     else:
-        raise PreventUpdate
+        try:
+            data = load_training_data()
+            data = data.drop(get_wavelength_columns(data), axis=1)
+            return [training_data_table(data)]
+        except FileNotFoundError:
+            raise PreventUpdate
+        
 
     
 

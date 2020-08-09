@@ -93,4 +93,4 @@ def upload_training_data(contents, filenames):
             f.write(decoded)
     data = extract_data(training_data_path)
     data = data.drop(get_wavelength_columns(data), axis=1)
-    return data.to_dict('records')
+    return data

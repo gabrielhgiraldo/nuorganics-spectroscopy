@@ -11,13 +11,8 @@ from dash_table import DataTable
 # TODO: fix certain columns on the left
 # TODO: order columns
 
-def training_data_table():
-    try:
-        data = load_training_data()
-        data = data.drop(get_wavelength_columns(data), axis=1)
-    except FileNotFoundError:
-        data = pd.DataFrame()
-    return dcc.Loading(DataTable(
+def training_data_table(data):
+    return DataTable(
         id='training-data-table',
         columns=[{"name": column, "id": column} for column in data.columns],
         data=data.to_dict('records'),
@@ -33,7 +28,7 @@ def training_data_table():
             'minWidth': '180px', 'width': '180px', 'maxWidth': '180px',
             'whiteSpace': 'normal'
         }    
-    ))
+    )
 
 def training_uploader():
     return html.Div([
@@ -63,7 +58,7 @@ def training_uploader():
 def training_content():
     return html.Div([
         training_uploader(),
-        training_data_table(),
+        dcc.Loading(id='training-table-wrapper'),
         html.Button('train model', id='train-button', n_clicks=0),
     ])
 
