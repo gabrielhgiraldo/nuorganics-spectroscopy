@@ -73,7 +73,7 @@ def load_training_data():
     except FileNotFoundError:
         message = (
             f'no previously extracted data found at {training_data_path}'
-            'extracting data from raw files'
+            '\n extracting data from raw files'
         )
         logger.warning(message)
         try:
