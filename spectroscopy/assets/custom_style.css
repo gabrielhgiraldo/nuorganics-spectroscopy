@@ -1,0 +1,8 @@
+.export{
+    position: absolute;
+    right: 50%;
+}
+.dash-spreadsheet .row {
+    margin-left: 0px;
+    margin-right: 0px;
+}

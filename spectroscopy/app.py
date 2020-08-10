@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from spectroscopy.utils import get_wavelength_columns
 from threading import Timer
@@ -8,6 +9,9 @@ import webbrowser
 import dash
 from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State
+import dash_bootstrap_components as dbc
+import matplotlib
+matplotlib.use('agg')
 
 from spectroscopy.app_layout import (
     render_layout,
@@ -19,6 +23,8 @@ from spectroscopy.app_utils import (
     save_user_settings, upload_training_data,
 )
 
+from spectroscopy.model import train_ammonia_n_model
+
 # TODO: add ability to specify data location
 # TODO: add ability to retrain model(s)
 # TODO: add ability to configure included model parameters
@@ -26,7 +32,12 @@ from spectroscopy.app_utils import (
 # TODO: add ability to view and download prediction results
 
 # load internal configurations
-app = dash.Dash(__name__, suppress_callback_exceptions=True)
+app = dash.Dash(__name__,
+    title='Nuorganics Spectroscopy',
+    suppress_callback_exceptions=True,
+    external_stylesheets=[dbc.themes.MINTY],
+    # external_stylesheets=[dbc.themes.MATERIA]
+)
 
 # TODO: add ability to change configurations
 def get_triggered_id():
@@ -94,7 +105,21 @@ def update_training_data(contents, filenames, last_modifieds):
             return [training_data_table(data)]
         except FileNotFoundError:
             raise PreventUpdate
-        
+
+
+# TODO: add ability to choose model type
+# train model callback
+@app.callback(
+    output=Output('training-feedback','children'),
+    inputs=[Input('train-model','n_clicks')],
+    # state=(State('training-data-table','data'))
+)
+def on_train_model(n_clicks):
+    if not n_clicks:
+        raise PreventUpdate
+    model_dir = Path(get_user_settings()['paths']['project-path'])
+    train_ammonia_n_model(model_dir)
+    return ['model trained']
 
     
 

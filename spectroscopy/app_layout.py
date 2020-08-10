@@ -1,26 +1,30 @@
 from pathlib import Path
 
 import pandas as pd
+from pandas import option_context
 
 from spectroscopy.utils import get_wavelength_columns
 from spectroscopy.app_utils import get_user_settings, load_training_data
 import dash_core_components as dcc
 import dash_html_components as html
 from dash_table import DataTable
+import dash_bootstrap_components as dbc
 
 # TODO: fix certain columns on the left
 # TODO: order columns
 
 def training_data_table(data):
     return html.Div([
-        html.H3('Extracted Data'),
-        html.P(f'{len(data.index)} samples'),
+        # html.H3('Extracted Data'),
         DataTable(
             id='training-data-table',
             columns=[{"name": column, "id": column} for column in data.columns],
             data=data.to_dict('records'),
             fixed_rows={'headers': True},
+            sort_action='native',
+            export_format='xlsx',
             style_table={
+                # 'width':'100%',
                 'height': '800px',
                 'overflowY': 'auto',
                 'overflowX':'auto'
@@ -32,7 +36,8 @@ def training_data_table(data):
                 'maxWidth': '180px',
                 #text overflow settings
                 'overflow':'hidden',
-                'textOverflow':'ellipsis'
+                'textOverflow':'ellipsis',
+                'textAlign':'left'
             },
             tooltip_data=[
                 {
@@ -40,41 +45,42 @@ def training_data_table(data):
                     for column, value in row.items()
                 } for row in data.to_dict('rows')
             ],
-            tooltip_duration=None
-        )],
+            tooltip_duration=None,
+            tooltip_delay=800
+        ),
+        html.P(f'total: {len(data.index)} samples'),
+        ],
         style={'textAlign':'center'}
     )
 
-def training_uploader():
-    return html.Div([
-        dcc.Upload(
-            id='upload-training',
-            multiple=True,
-            style={
-                'width': '100%',
-                'height': '60px',
-                'lineHeight': '60px',
-                'borderWidth': '1px',
-                'borderStyle': 'dashed',
-                'borderRadius': '5px',
-                'textAlign': 'center',
-                'margin': '10px'
-            },
-            children=html.Div([
-                'Drag and Drop or ',
-                html.A('Select Files')
-            ]),
-        )
-    ])
-
 
 # TODO: adjust column ordering in training datatable
-# TODO: add 'extract data' button
 def training_content():
     return html.Div([
-        training_uploader(),
+        # training_uploader(),
+        dcc.Loading(id='training-feedback'),
+        dbc.ButtonGroup([
+            dcc.Upload(
+                id='upload-training',
+                multiple=True,
+                children=[
+                    dbc.Button(
+                        'Upload Files',
+                        color='primary'
+                    ),
+                ]
+            ),
+            dbc.Button(
+                'train model',
+                id='train-model',
+                n_clicks=0,
+                color='primary'
+            ),
+            # dbc.Select(
+            #     option_context
+            # )
+        ]),
         dcc.Loading(id='training-table-wrapper'),
-        html.Button('train model', id='train-button', n_clicks=0),
     ])
 
     
