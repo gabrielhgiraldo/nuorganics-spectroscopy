@@ -6,3 +6,7 @@
     margin-left: 0px;
     margin-right: 0px;
 }
+
+#upload-training{
+    display:inline-block;
+}
