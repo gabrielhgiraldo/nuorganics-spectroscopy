@@ -37,6 +37,7 @@ app = dash.Dash(__name__,
     suppress_callback_exceptions=True,
     external_stylesheets=[dbc.themes.MINTY],
     # external_stylesheets=[dbc.themes.MATERIA]
+    external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 )
 
 # TODO: add ability to change configurations
