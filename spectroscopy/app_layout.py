@@ -12,6 +12,7 @@ import dash_bootstrap_components as dbc
 
 # TODO: fix certain columns on the left
 # TODO: order columns
+AVAILABLE_TARGETS = ['AMMONIA-N', '% MOISTURE', 'P', 'K', 'S']
 
 def training_data_table(data):
     return html.Div([
@@ -59,27 +60,26 @@ def training_content():
     return html.Div([
         # training_uploader(),
         dcc.Loading(id='training-feedback'),
-        dbc.ButtonGroup([
+        html.Div([
             dcc.Upload(
                 id='upload-training',
                 multiple=True,
                 children=[
-                    dbc.Button(
+                    html.Button(
                         'Upload Files',
-                        color='primary'
                     ),
-                ]
+                ],
             ),
-            dbc.Button(
+            html.Button(
                 'train model',
                 id='train-model',
                 n_clicks=0,
-                color='primary'
             ),
             # dbc.Select(
             #     option_context
             # )
-        ]),
+        ],
+        style={'textAlign':'center'}),
         dcc.Loading(id='training-table-wrapper'),
     ])
 
@@ -103,6 +103,7 @@ def setting_inputs():
             ))
     return inputs
     
+
 def settings_content():
     # TODO: change input types to validate for filepath format
     return html.Div(
@@ -113,6 +114,7 @@ def settings_content():
             html.Div(id='settings-feedback')
         ]
     )
+
 
 def render_layout():
     return html.Div([
@@ -129,4 +131,21 @@ def render_layout():
         html.Div(id='tab-content')
     ])
 
+
+def target_selector():
+    # checkboxes for which models to do inference with
+    options = [{'label':target, 'value':target, 'disabled':True} for target in AVAILABLE_TARGETS]
+    return dcc.Checklist(
+        id='inference-selection',
+        options=options,
+    )
+
+
+def inference_content():
+    return html.Div([
+        # select which targets you want to include in inference (which models)
+        target_selector(),
+        # button for running inference
+        dbc.Button('run inference', id='run-inference', n_clicks=0)
+    ])
 
