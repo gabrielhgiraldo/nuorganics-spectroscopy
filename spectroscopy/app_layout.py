@@ -1,19 +1,23 @@
-from pathlib import Path
-
-import pandas as pd
-from pandas import option_context
-
-from spectroscopy.utils import get_wavelength_columns
-from spectroscopy.app_utils import get_user_settings, load_training_data
 import dash_core_components as dcc
 import dash_html_components as html
 from dash_table import DataTable
-import dash_bootstrap_components as dbc
+
+
+from spectroscopy.app_utils import get_user_settings
+from spectroscopy.utils import AMMONIA_N, PERCENT_MOISTURE, PHOSPHORUS, POTASSIUM, SULFUR
+
+
+
+AVAILABLE_TARGETS = [
+    {'label':'AMMONIA-N','value':AMMONIA_N},
+    {'label':'PERCENT MOISTURE', 'value':PERCENT_MOISTURE},
+    {'label':'PHOSPHOROUS', 'value':PHOSPHORUS},
+    {'label':'POTASSIUM', 'value':POTASSIUM},
+    {'label':'SULFUR', 'value':SULFUR}
+]
 
 # TODO: fix certain columns on the left
 # TODO: order columns
-AVAILABLE_TARGETS = ['AMMONIA-N', '% MOISTURE', 'P', 'K', 'S']
-
 def training_data_table(data):
     return html.Div([
         # html.H3('Extracted Data'),
@@ -58,9 +62,9 @@ def training_data_table(data):
 # TODO: adjust column ordering in training datatable
 def training_content():
     return html.Div([
-        # training_uploader(),
         dcc.Loading(id='training-feedback'),
         html.Div([
+            training_target_selector(),
             dcc.Upload(
                 id='upload-training',
                 multiple=True,
@@ -75,11 +79,8 @@ def training_content():
                 id='train-model',
                 n_clicks=0,
             ),
-            # dbc.Select(
-            #     option_context
-            # )
         ],
-        style={'textAlign':'center'}),
+        style={'textAlign':'center', 'padding':'10px'}),
         dcc.Loading(id='training-table-wrapper'),
     ])
 
@@ -132,20 +133,33 @@ def render_layout():
     ])
 
 
-def target_selector():
+def inference_target_selector():
     # checkboxes for which models to do inference with
-    options = [{'label':target, 'value':target, 'disabled':True} for target in AVAILABLE_TARGETS]
+    options = [{**target, 'disabled':True} for target in AVAILABLE_TARGETS]
     return dcc.Checklist(
-        id='inference-selection',
+        id='inference-target-selection',
         options=options,
+        labelStyle={'display':'inline-block'},
+        style={'display':'inline-block'}
+    )
+
+
+def training_target_selector():
+    # checkboxes for which models to do inference with
+    options = [{**target, 'disabled':False} for target in AVAILABLE_TARGETS]
+    return dcc.Checklist(
+        id='training-target-selection',
+        options=options,
+        labelStyle={'display':'inline-block'},
+        style={'display':'inline-block'}
     )
 
 
 def inference_content():
     return html.Div([
         # select which targets you want to include in inference (which models)
-        target_selector(),
+        inference_target_selector('inference-target-selection'),
         # button for running inference
-        dbc.Button('run inference', id='run-inference', n_clicks=0)
+        html.Button('run inference', id='run-inference', n_clicks=0)
     ])
 

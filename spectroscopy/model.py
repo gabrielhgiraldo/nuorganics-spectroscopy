@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from spectroscopy.app_utils import get_training_data_path
 
 from lightgbm import LGBMRegressor
 import numpy as np
@@ -23,9 +24,9 @@ from spectroscopy.utils import (
     get_wavelength_columns,
     plot_fit,
 )
-
 MODEL_DIR = Path('bin/model/')
 MODEL_FILENAME = 'model.pkl'
+
 class RegressorModule(nn.Module):
     def __init__(
             self,
@@ -89,55 +90,59 @@ def get_features(df):
     return feature_columns
 
 
-def train_ammonia_n_model(model_dir=None):
+# TODO: generalize this for multiple targets
+def train_models(targets, model_dir=None):
     if model_dir is None:
         model_dir = MODEL_DIR
     model_dir = Path(model_dir)
-    df = load_extracted_training_data()
+    df = load_extracted_training_data(get_training_data_path())
     # TODO: have preprocessing and feature extraction occur in model pipeline
     df['process_method'].fillna('none', inplace=True)
     df['process_method'] = df['process_method'].astype(str)
     # df = df[df['process_method'].isin(['ground','wet'])]
     df = pd.concat([df, pd.get_dummies(df['process_method'])], axis=1)
+    # TODO: enable different features for different models
     feature_columns = get_features(df)
-    X, y = df[feature_columns], df['Ammonia-N']
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=10)
-    print(f'total samples:{len(df)} training on:{len(X_train)} testing on {len(X_test)}')
-    model = _define_model()
-    model.fit(X_train, y_train)
-    baseline_scores = score_model(model, X_train, y_train, X_test, y_test)
-    print('all features scores:')
-    pprint(baseline_scores)
+    X = df[feature_columns]
+    for target in targets:
+        target_model_dir = model_dir / target
+        y = df[target]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=10)
+        print(f'total samples:{len(df)} training on:{len(X_train)} testing on {len(X_test)}')
+        model = _define_model()
+        model.fit(X_train, y_train)
+        baseline_scores = score_model(model, X_train, y_train, X_test, y_test)
+        print('all features scores:')
+        pprint(baseline_scores)
 
-    # select k best features
-    model_pipeline = Pipeline([
-        ('feature_selector', SelectFromModel(_define_model())),
-        ('model', model)
-    ])
-    model_pipeline.fit(X_train, y_train)
-    selected_scores = score_model(model_pipeline, X_train, y_train, X_test, y_test)
-    feature_selector = model_pipeline.named_steps['feature_selector']
-    selected_features = X_test.columns[feature_selector.get_support()]
-    print('selected important features:', selected_features)
-    print('reduced feature scores:')
-    pprint(selected_scores)
+        # select k best features
+        model_pipeline = Pipeline([
+            ('feature_selector', SelectFromModel(_define_model())),
+            ('model', model)
+        ])
+        model_pipeline.fit(X_train, y_train)
+        selected_scores = score_model(model_pipeline, X_train, y_train, X_test, y_test)
+        feature_selector = model_pipeline.named_steps['feature_selector']
+        selected_features = X_test.columns[feature_selector.get_support()]
+        print('selected important features:', selected_features)
+        print('reduced feature scores:')
+        pprint(selected_scores)
 
-  
-    print('saving fit graph')
-    plot_fit(y_test, model_pipeline.predict(X_test))
-    model_dir.mkdir(parents=True, exist_ok=True)
-    with open(MODEL_DIR/'baseline_scores.json', 'w') as f:
-        json.dump(baseline_scores, f)
-    with open(MODEL_DIR/'selected_scores.json', 'w') as f:
-        json.dump(selected_scores, f)
-    with open(MODEL_DIR / MODEL_FILENAME, 'wb') as f:
-        pickle.dump(model_pipeline, f)
+        print('saving fit graph')
+        plot_fit(y_test, model_pipeline.predict(X_test))
+        target_model_dir.mkdir(parents=True, exist_ok=True)
+        with open(target_model_dir/'baseline_scores.json', 'w') as f:
+            json.dump(baseline_scores, f)
+        with open(target_model_dir/'selected_scores.json', 'w') as f:
+            json.dump(selected_scores, f)
+        with open(target_model_dir / MODEL_FILENAME, 'wb') as f:
+            pickle.dump(model_pipeline, f)
 
-# TODO: load ammonia model vs load moisture model
-def load_model(model_dir=None):
+
+def load_model(model_target, model_dir=None):
     if model_dir is None:
         model_dir = MODEL_DIR
-    model_dir = Path(model_dir)
+    model_dir = Path(model_dir) / model_target
     with open(model_dir/MODEL_FILENAME, 'rb') as f:
         model = pickle.load(f)
     return model

@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 
-from spectroscopy.utils import get_wavelength_columns
 from threading import Timer
 import webbrowser
 
@@ -14,16 +13,22 @@ import matplotlib
 matplotlib.use('agg')
 
 from spectroscopy.app_layout import (
+    inference_content,
     render_layout,
     settings_content,
-    training_content, training_data_table,
+    training_content,
+    training_data_table,
 )
 from spectroscopy.app_utils import (
-    get_user_settings, load_training_data, 
-    save_user_settings, upload_training_data,
+    get_user_settings,
+    load_training_data, 
+    save_user_settings,
+    upload_training_data,
 )
+from spectroscopy.model import train_models
+from spectroscopy.utils import get_wavelength_columns
 
-from spectroscopy.model import train_ammonia_n_model
+
 
 # TODO: add ability to specify data location
 # TODO: add ability to retrain model(s)
@@ -35,7 +40,7 @@ from spectroscopy.model import train_ammonia_n_model
 app = dash.Dash(__name__,
     title='Nuorganics Spectroscopy',
     suppress_callback_exceptions=True,
-    external_stylesheets=[dbc.themes.MINTY],
+    # external_stylesheets=[dbc.themes.MINTY],
     # external_stylesheets=[dbc.themes.MATERIA]
     external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 )
@@ -58,6 +63,8 @@ def render_content(tab):
         return settings_content()
     elif tab == 'training-tab':
         return training_content()
+    elif tab == 'inference-tab':
+        return inference_content()
     else:
         return ['no content available for tab value']
 
@@ -109,18 +116,22 @@ def update_training_data(contents, filenames, last_modifieds):
 
 
 # TODO: add ability to choose model type
+# TODO: add loading spinner while models are training
 # train model callback
 @app.callback(
-    output=Output('training-feedback','children'),
-    inputs=[Input('train-model','n_clicks')],
-    # state=(State('training-data-table','data'))
+    output=Output('training-feedback', 'children'),
+    inputs=[Input('train-model', 'n_clicks')],
+    state=[State('training-target-selection', 'value')]
 )
-def on_train_model(n_clicks):
+def on_train_model(n_clicks, training_targets):
+    # TODO: get parameters for specific targets
+    # TODO: get training data for specific targets
     if not n_clicks:
         raise PreventUpdate
     model_dir = Path(get_user_settings()['paths']['project-path'])
-    train_ammonia_n_model(model_dir)
-    return ['model trained']
+    train_models(training_targets, model_dir)
+    # TODO: display model training results
+    return ['models trained']
 
     
 

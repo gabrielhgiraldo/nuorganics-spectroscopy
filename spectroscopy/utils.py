@@ -10,6 +10,14 @@ DATETIME_FORMAT = '%m-%d-%y'
 DATA_DIR = Path(__file__).parents[1] / 'data'
 TRAINING_DATA_FILENAME = 'training_data.csv'
 
+AMMONIA_N = 'Ammonia-N'
+PERCENT_MOISTURE = 'Moisture'
+PHOSPHORUS = 'P'
+POTASSIUM = 'K'
+SULFUR = 'S'
+ALL_TARGETS = [AMMONIA_N, PERCENT_MOISTURE, PHOSPHORUS, POTASSIUM, SULFUR]
+
+
 def plot_sample(wavelengths, transmittance):
     plt.figure(figsize=(20,10))
     plt.title('Transmittance vs Wavelength')
@@ -146,12 +154,12 @@ def extract_data(data_path=None):
     # TODO: make this a warning
     if len(unmatched_names) > 0:
         print(f'unable to match sample lab reports named {unmatched_names}')
-    lab_report_columns = ['Ammonia-N', 'filename', 'Moisture']
+    lab_report_columns = ['filename', *ALL_TARGETS]
     lr_to_join = df_lr.set_index(['sample_name', 'sample_date'])[lab_report_columns]
     df = df_trms.join(lr_to_join, on=['sample_name', 'sample_date'], lsuffix='_trm', rsuffix='_lr')\
                                         .reset_index(drop=True)
     # drop null Ammonia-N (unmatched)
-    df = df.dropna(subset=['Ammonia-N'])
+    df = df.dropna(subset=[ALL_TARGETS])
     df.to_csv(data_path/TRAINING_DATA_FILENAME, index=False)
     return df
 

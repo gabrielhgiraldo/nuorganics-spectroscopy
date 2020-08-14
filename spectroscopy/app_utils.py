@@ -24,7 +24,7 @@ DEFAULT_USER_CONFIGS = {
 logger = logging.getLogger(__name__)
 
 
-def get_user_settings(setting=None):
+def get_user_settings():
     user_config = ConfigParser()
     # set default settings in case no config file is found
     user_config.read_dict(DEFAULT_USER_CONFIGS)
@@ -94,3 +94,5 @@ def upload_training_data(contents, filenames):
     data = extract_data(training_data_path)
     data = data.drop(get_wavelength_columns(data), axis=1)
     return data
+        
+
