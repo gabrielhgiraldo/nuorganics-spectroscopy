@@ -159,7 +159,7 @@ def extract_data(data_path=None):
     df = df_trms.join(lr_to_join, on=['sample_name', 'sample_date'], lsuffix='_trm', rsuffix='_lr')\
                                         .reset_index(drop=True)
     # drop null Ammonia-N (unmatched)
-    df = df.dropna(subset=[AVAILABLE_TARGETS])
+    df = df.dropna(subset=AVAILABLE_TARGETS)
     df.to_csv(data_path/TRAINING_DATA_FILENAME, index=False)
     return df
 
