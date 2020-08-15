@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-from spectroscopy.app_utils import get_training_data_path
 
 from lightgbm import LGBMRegressor
 import numpy as np
@@ -26,6 +25,7 @@ from spectroscopy.utils import (
 )
 MODEL_DIR = Path('bin/model/')
 MODEL_FILENAME = 'model.pkl'
+MODEL_METRICS_FILENAME = 'scores.json'
 
 class RegressorModule(nn.Module):
     def __init__(
@@ -64,7 +64,7 @@ def score_model(model, X_train, y_train, X_test, y_test):
     return {
         'train_r2':model.score(X_train, y_train),
         'train_mape':mean_absolute_percentage_error(y_train, y_train_pred),
-        'train_rms3':np.sqrt(mean_squared_error(y_train, y_train_pred)),
+        'train_rmse':np.sqrt(mean_squared_error(y_train, y_train_pred)),
         'test_r2':model.score(X_test, y_test),
         'test_mape':mean_absolute_percentage_error(y_test, y_test_pred),
         'test_rmse':np.sqrt(mean_squared_error(y_test, y_test_pred))
@@ -105,40 +105,26 @@ def train_models(targets, model_dir=None):
     feature_columns = get_features(df)
     X = df[feature_columns]
     # TODO: switch printing with logging
+    # TODO: add ability to include different experiments in one training run
     for target in targets:
         print(f'Fitting {target} model')
         target_model_dir = model_dir / target
         y = df[target]
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=10)
         print(f'total samples:{len(df)} training on:{len(X_train)} testing on {len(X_test)}')
+        # TODO: allow for different architectures for each model
         model = _define_model()
         model.fit(X_train, y_train)
-        baseline_scores = score_model(model, X_train, y_train, X_test, y_test)
-        print('all features scores:')
-        pprint(baseline_scores)
-
-        # select k best features
-        model_pipeline = Pipeline([
-            ('feature_selector', SelectFromModel(_define_model())),
-            ('model', model)
-        ])
-        model_pipeline.fit(X_train, y_train)
-        selected_scores = score_model(model_pipeline, X_train, y_train, X_test, y_test)
-        feature_selector = model_pipeline.named_steps['feature_selector']
-        selected_features = X_test.columns[feature_selector.get_support()]
-        print('selected important features:', selected_features)
-        print('reduced feature scores:')
-        pprint(selected_scores)
-
+        scores = score_model(model, X_train, y_train, X_test, y_test)
+        pprint(scores)
         print('saving fit graph')
-        plot_fit(y_test, model_pipeline.predict(X_test))
+        plot_fit(y_test, model.predict(X_test))
         target_model_dir.mkdir(parents=True, exist_ok=True)
-        with open(target_model_dir/'baseline_scores.json', 'w') as f:
-            json.dump(baseline_scores, f)
-        with open(target_model_dir/'selected_scores.json', 'w') as f:
-            json.dump(selected_scores, f)
+        # TODO: use database or experiment handling framework for metrics storage
+        with open(target_model_dir/MODEL_METRICS_FILENAME, 'w') as f:
+            json.dump(scores, f)
         with open(target_model_dir / MODEL_FILENAME, 'wb') as f:
-            pickle.dump(model_pipeline, f)
+            pickle.dump(model, f)
 
 
 def load_model(model_target, model_dir=None):
@@ -150,5 +136,10 @@ def load_model(model_target, model_dir=None):
     return model
 
 
-
-    
+def load_model_metrics(model_target, model_dir=None):
+    if model_dir is None:
+        model_dir = MODEL_DIR
+    model_dir = Path(model_dir) / model_target
+    with open(model_dir / MODEL_METRICS_FILENAME) as f:
+        scores = json.load(f)
+    return scores

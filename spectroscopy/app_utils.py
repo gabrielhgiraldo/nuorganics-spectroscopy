@@ -3,7 +3,9 @@ from configparser import ConfigParser
 import logging
 from pathlib import Path
 
+from spectroscopy.model import load_model_metrics
 from spectroscopy.utils import (
+    AVAILABLE_TARGETS,
     extract_data,
     get_wavelength_columns,
     load_extracted_training_data
@@ -96,3 +98,27 @@ def upload_training_data(contents, filenames):
     return data
         
 
+def get_model_dir():
+    return Path(get_user_settings()['paths']['project-path'])
+
+def load_all_model_metrics():
+    model_dir = get_model_dir()
+    metrics = {}
+    for target in AVAILABLE_TARGETS:
+        try:
+            model_metrics = load_model_metrics(target, model_dir)
+        except FileNotFoundError as e:
+            logger.warning(e)
+        else:
+            metrics[target] = model_metrics
+    return metrics
+# def get_samples_dir():
+
+# def load_models():
+#     models = {}
+#     model_dir = get_model_dir()
+#     for target in AVAILABLE_TARGETS:
+#         try:
+#             models['target'] = load_model(target, model_dir)
+#         except FileNotFoundError:
+#             logger.warn(f'no model for target {target} found in dir {model_dir}')

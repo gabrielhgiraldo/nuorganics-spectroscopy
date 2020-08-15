@@ -10,17 +10,20 @@ from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 import matplotlib
+import pandas as pd
 matplotlib.use('agg')
 
 from spectroscopy.app_layout import (
     inference_content,
+    model_metrics_section,
     render_layout,
     settings_content,
     training_content,
-    training_data_table,
+    model_data_table,
 )
 from spectroscopy.app_utils import (
     get_user_settings,
+    load_all_model_metrics,
     load_training_data, 
     save_user_settings,
     upload_training_data,
@@ -30,25 +33,18 @@ from spectroscopy.utils import get_wavelength_columns
 
 
 
-# TODO: add ability to specify data location
-# TODO: add ability to retrain model(s)
 # TODO: add ability to configure included model parameters
 # TODO: add ability to save retrained model(s)
 # TODO: add ability to view and download prediction results
-
-# load internal configurations
 app = dash.Dash(__name__,
     title='Nuorganics Spectroscopy',
     suppress_callback_exceptions=True,
-    # external_stylesheets=[dbc.themes.MINTY],
-    # external_stylesheets=[dbc.themes.MATERIA]
-    external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+    # external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 )
 
-# TODO: add ability to change configurations
+
 def get_triggered_id():
     ctx = dash.callback_context
-
     if not ctx.triggered:
         return None
     else:
@@ -97,6 +93,7 @@ def on_save(n_clicks, *args):
     else:
         raise PreventUpdate       
 
+
 # upload data callback
 @app.callback(
     output=Output('training-table-wrapper', 'children'),
@@ -105,33 +102,46 @@ def on_save(n_clicks, *args):
            State('upload-training', 'last_modified')])
 def update_training_data(contents, filenames, last_modifieds):
     if contents is not None and filenames is not None:
-        return [training_data_table(upload_training_data(contents, filenames))]
+        return [model_data_table(upload_training_data(contents, filenames), 'training')]
     else:
         try:
             data = load_training_data()
             data = data.drop(get_wavelength_columns(data), axis=1)
-            return [training_data_table(data)]
+            return [model_data_table(data, 'training')]
         except FileNotFoundError:
             raise PreventUpdate
 
 
-# TODO: add ability to choose model type
 # TODO: add loading spinner while models are training
 # train model callback
 @app.callback(
-    output=Output('training-feedback', 'children'),
-    inputs=[Input('train-model', 'n_clicks')],
+    output=Output('model-metrics-wrapper', 'children'),
+    inputs=[Input('train-models', 'n_clicks')],
     state=[State('training-target-selection', 'value')]
 )
-def on_train_model(n_clicks, training_targets):
+def on_train_models(n_clicks, training_targets):
     # TODO: get parameters for specific targets
     # TODO: get training data for specific targets
-    if not n_clicks:
-        raise PreventUpdate
-    model_dir = Path(get_user_settings()['paths']['project-path'])
-    train_models(training_targets, model_dir)
-    # TODO: display model training results
-    return ['models trained']
+    if n_clicks:
+        model_dir = Path(get_user_settings()['paths']['project-path'])
+        train_models(training_targets, model_dir)
+    model_metrics = load_all_model_metrics()
+    return model_metrics_section(model_metrics)
+
+# @app.callback(
+#     output=Output('inference-feedback', 'children'),
+#     inputs=[Input('run-inference', 'n_clicks')],
+#     state=[State('inference-target-selection','value')]
+# )
+# def on_inference(inference_clicks, inference_targets):
+#     if inference_clicks is None:
+#         raise PreventUpdate
+#     model_dir = get_model_dir()
+#     # get samples directory
+#     dfs = []
+#     for target in inference_targets:
+#         model = load_model(target, model_dir)
+#         model.predict()
 
     
 
