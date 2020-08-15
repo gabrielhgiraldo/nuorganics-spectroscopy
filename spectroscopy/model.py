@@ -104,7 +104,9 @@ def train_models(targets, model_dir=None):
     # TODO: enable different features for different models
     feature_columns = get_features(df)
     X = df[feature_columns]
+    # TODO: switch printing with logging
     for target in targets:
+        print(f'Fitting {target} model')
         target_model_dir = model_dir / target
         y = df[target]
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=10)
