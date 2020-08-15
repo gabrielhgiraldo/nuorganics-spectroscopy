@@ -91,11 +91,11 @@ def get_features(df):
 
 
 # TODO: generalize this for multiple targets
-def train_models(targets, model_dir=None):
+def train_models(targets, model_dir=None, training_data_path=None):
     if model_dir is None:
         model_dir = MODEL_DIR
     model_dir = Path(model_dir)
-    df = load_extracted_training_data(get_training_data_path())
+    df = load_extracted_training_data(training_data_path)
     # TODO: have preprocessing and feature extraction occur in model pipeline
     df['process_method'].fillna('none', inplace=True)
     df['process_method'] = df['process_method'].astype(str)

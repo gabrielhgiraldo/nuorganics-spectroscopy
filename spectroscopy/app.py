@@ -22,6 +22,8 @@ from spectroscopy.app_layout import (
     model_data_table,
 )
 from spectroscopy.app_utils import (
+    get_model_dir,
+    get_training_data_path,
     get_user_settings,
     load_all_model_metrics,
     load_training_data, 
@@ -123,8 +125,9 @@ def on_train_models(n_clicks, training_targets):
     # TODO: get parameters for specific targets
     # TODO: get training data for specific targets
     if n_clicks:
-        model_dir = Path(get_user_settings()['paths']['project-path'])
-        train_models(training_targets, model_dir)
+        model_dir = get_model_dir()
+        training_data_path = get_training_data_path()
+        train_models(training_targets, model_dir, training_data_path)
     model_metrics = load_all_model_metrics()
     return model_metrics_section(model_metrics)
 
