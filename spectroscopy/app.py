@@ -8,9 +8,7 @@ import webbrowser
 import dash
 from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, Output, State
-import dash_bootstrap_components as dbc
 import matplotlib
-import pandas as pd
 matplotlib.use('agg')
 
 from spectroscopy.app_layout import (
