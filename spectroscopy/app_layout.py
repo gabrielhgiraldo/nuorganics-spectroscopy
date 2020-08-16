@@ -10,7 +10,7 @@ from spectroscopy.utils import (
     AVAILABLE_TARGETS,
 )
 
-
+METRIC_PRECISION = 2
 TARGET_OPTIONS = [{'label':target, 'value':target} for target in AVAILABLE_TARGETS]
 logger = logging.getLogger(__name__)
 
@@ -159,21 +159,46 @@ def trained_models_section():
     )
 
 
-# a card for each model with the model metrics
-def model_metrics_section(model_metrics):
+def metric_card(metric_name, metric_value, n_columns=1):
+    word_to_number = ["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve"]
+    return html.Div(
+        children=[
+            html.Small(f"{metric_name}\n"),
+            html.Small(html.B(round(metric_value, METRIC_PRECISION)))
+        ],
+        className=f"{word_to_number[int(12/n_columns)]} columns"
+    )
+
+
+def model_card(model_tag, metrics):
+    metric_cards = [metric_card(name, value, len(metrics)) for name, value in metrics.items()]
+    return html.Div(
+        children=[
+            html.B(model_tag),
+            html.Div(
+                children=metric_cards,
+                className="row"
+            )
+        ]
+    )
+
+
+# TODO: include residual graphs, fit graphs, other graphs
+def model_performance_section(model_metrics):
     # load model metrics
     # create card for every model
     metrics_cards = []
     for model, metrics in model_metrics.items():
-        card = html.Div(
-            children=[
-                html.P(model+':'),
-                html.P(str(metrics))]
-        )
+        # card = html.Div(
+        #     children=[
+        #         html.P(model+':'),
+        #         html.P(str(metrics))]
+        # )
+        card = model_card(model, metrics)
         metrics_cards.append(card)
 
     return html.Div(
-        children=metrics_cards
+        children=[html.H5('Performance'), *metrics_cards]
     )
 
 

@@ -15,7 +15,7 @@ matplotlib.use('agg')
 
 from spectroscopy.app_layout import (
     inference_content,
-    model_metrics_section,
+    model_performance_section,
     render_layout,
     settings_content,
     training_content,
@@ -128,8 +128,10 @@ def on_train_models(n_clicks, training_targets):
         model_dir = get_model_dir()
         training_data_path = get_training_data_path()
         train_models(training_targets, model_dir, training_data_path)
+        # predict on test data and add it to the testing data section for exportation
+        # generate testing data section
     model_metrics = load_all_model_metrics()
-    return model_metrics_section(model_metrics)
+    return model_performance_section(model_metrics)
 
 # @app.callback(
 #     output=Output('inference-feedback', 'children'),
