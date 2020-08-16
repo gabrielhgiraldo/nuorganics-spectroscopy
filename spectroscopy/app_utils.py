@@ -3,12 +3,12 @@ from configparser import ConfigParser
 import logging
 from pathlib import Path
 
-from spectroscopy.model import load_model_metrics
+from spectroscopy.model import load_model, load_model_metrics, transform_data
 from spectroscopy.utils import (
     AVAILABLE_TARGETS,
+    INFERENCE_RESULTS_FILENAME,
     extract_data,
-    get_wavelength_columns,
-    load_extracted_training_data
+    load_extracted_data
 )
 
 INTERNAL_CONFIG_FILEPATH = Path(__file__).parent / 'config.ini'
@@ -72,10 +72,10 @@ def get_results_data_path():
     return Path(get_user_settings()['paths']['results-data-path'])
 
 
-def load_data(data_path):
+def load_data(data_path, filename=None):
     try:
         logger.info('loading extracted data')
-        return load_extracted_training_data(data_path)
+        return load_extracted_data(data_path, filename)
     except FileNotFoundError:
         message = (
             f'no previously extracted data found at {data_path}'
@@ -83,7 +83,7 @@ def load_data(data_path):
         )
         logger.warning(message)
         try:
-            return extract_data(data_path)
+            return extract_data(data_path, filename)
         except FileNotFoundError as e:
             logger.warning(e)
             raise
@@ -96,7 +96,7 @@ def load_training_data():
 
 def load_inference_data():
     inference_data_path = get_results_data_path()
-    return load_data(inference_data_path)
+    return load_data(inference_data_path, INFERENCE_RESULTS_FILENAME)
 
 
 def upload_data(path, contents, filenames):
@@ -106,8 +106,7 @@ def upload_data(path, contents, filenames):
         decoded = base64.b64decode(content_string)
         with open(path/filename, 'wb') as f:
             f.write(decoded)
-    data = extract_data(path)
-    data = data.drop(get_wavelength_columns(data), axis=1)
+    data = extract_data(path, INFERENCE_RESULTS_FILENAME)
     return data
 
 
@@ -136,13 +135,32 @@ def load_all_model_metrics():
         else:
             metrics[target] = model_metrics
     return metrics
-# def get_samples_dir():
 
-# def load_models():
-#     models = {}
-#     model_dir = get_model_dir()
-#     for target in AVAILABLE_TARGETS:
-#         try:
-#             models['target'] = load_model(target, model_dir)
-#         except FileNotFoundError:
-#             logger.warn(f'no model for target {target} found in dir {model_dir}')
+
+def load_models(tags):
+    if tags is None:
+        tags = AVAILABLE_TARGETS
+    models = {}
+    model_dir = get_model_dir()
+    for tag in tags:
+        try:
+            models[tag] = load_model(tag, model_dir)
+        except FileNotFoundError:
+            logger.warn(f'no model {tag} found in dir {model_dir}')
+    return models
+
+
+def inference_models(model_tags, data=None, results_path=None):
+    if results_path is None:
+        results_path = get_results_data_path()
+    if data is None:
+        data = load_inference_data()
+
+    models = load_models(model_tags)
+    X = transform_data(data)
+    for model_tag, model in models.items():
+        logger.info(f'running inference with model {model_tag}')
+        data[f'predicted_{model_tag}'] = model.predict(X)
+    data.to_csv(results_path/INFERENCE_RESULTS_FILENAME, index=False)
+    return data
+

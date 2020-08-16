@@ -8,7 +8,7 @@
     margin-right: 0px;
 } */
 
-#upload-training{
+div[id^='upload-']{
     /* display:inline-block; */
     position: relative;
     z-index: 1;

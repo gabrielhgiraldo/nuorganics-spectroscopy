@@ -1,7 +1,8 @@
-import matplotlib.pyplot as plt
+import logging
 from pathlib import Path
 import re
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.impute import SimpleImputer
@@ -9,6 +10,7 @@ from sklearn.impute import SimpleImputer
 DATETIME_FORMAT = '%m-%d-%y'
 DATA_DIR = Path(__file__).parents[1] / 'data'
 TRAINING_DATA_FILENAME = 'training_data.csv'
+INFERENCE_RESULTS_FILENAME = 'inference_results.csv'
 
 AMMONIA_N = 'Ammonia-N'
 PERCENT_MOISTURE = 'Moisture'
@@ -17,6 +19,7 @@ POTASSIUM = 'K'
 SULFUR = 'S'
 AVAILABLE_TARGETS = [AMMONIA_N, PERCENT_MOISTURE, PHOSPHORUS, POTASSIUM, SULFUR]
 
+logger = logging.getLogger(__name__)
 
 def plot_sample(wavelengths, transmittance):
     plt.figure(figsize=(20,10))
@@ -74,12 +77,17 @@ def parse_spect_file(path):
     return sample_df
 
 
-def parse_trm_files(directory_path=None) -> pd.DataFrame:
+def parse_trm_files(directory_path=None, zero_negatives=True) -> pd.DataFrame:
     if directory_path is None:
         directory_path = DATA_DIR
     directory_path = Path(directory_path)
     try:
-        return pd.concat([parse_spect_file(filepath) for filepath in directory_path.glob("*.TRM")])
+        df_trms = pd.concat([parse_spect_file(filepath) for filepath in directory_path.glob("*.TRM")])
+        if zero_negatives:
+            # set trms that are < 0 to 0
+            num = df_trms._get_numeric_data()
+            num[num < 0] = 0
+        return df_trms
     except ValueError:
         raise FileNotFoundError(f'no .TRM files found at {directory_path}')
 
@@ -142,36 +150,44 @@ def check_data_sample_name_match(df_lr, df_samples):
     return unmatched_names
 
 
-def extract_data(data_path=None):
+def extract_data(data_path=None, extracted_filename=None):
+    if extracted_filename is None:
+        extracted_filename = TRAINING_DATA_FILENAME
     if data_path is None:
         data_path = DATA_DIR
-    df_lr = parse_lab_reports(data_path)
+    # handle transmittance
     df_trms = parse_trm_files(data_path)
-    # set trms that are < 0 to 0
-    num = df_trms._get_numeric_data()
-    num[num < 0] = 0
-    unmatched_names = check_data_sample_name_match(df_lr, df_trms)
-    # TODO: make this a warning
-    if len(unmatched_names) > 0:
-        print(f'unable to match sample lab reports named {unmatched_names}')
-    lab_report_columns = ['filename', *AVAILABLE_TARGETS]
-    lr_to_join = df_lr.set_index(['sample_name', 'sample_date'])[lab_report_columns]
-    df = df_trms.join(lr_to_join, on=['sample_name', 'sample_date'], lsuffix='_trm', rsuffix='_lr')\
-                                        .reset_index(drop=True)
-    # drop null Ammonia-N (unmatched)
-    df = df.dropna(subset=AVAILABLE_TARGETS)
-    df.to_csv(data_path/TRAINING_DATA_FILENAME, index=False)
+    # try and see if there's groundtruth for these files
+    try:
+        df_lr = parse_lab_reports(data_path)
+    except FileNotFoundError as e:
+        logger.warning(e)
+        df = df_trms
+    else:
+        # if there's groundtruth, join the groundtruth to the dataset
+        unmatched_names = check_data_sample_name_match(df_lr, df_trms)
+        # TODO: make this a warning
+        if len(unmatched_names) > 0:
+            print(f'unable to match sample lab reports named {unmatched_names}')
+        lab_report_columns = ['filename', *AVAILABLE_TARGETS]
+        lr_to_join = df_lr.set_index(['sample_name', 'sample_date'])[lab_report_columns]
+        df = df_trms.join(lr_to_join, on=['sample_name', 'sample_date'], lsuffix='_trm', rsuffix='_lr')\
+                                            .reset_index(drop=True)
+        # drop null Ammonia-N (unmatched)
+        df = df.dropna(subset=AVAILABLE_TARGETS)
+    df.to_csv(data_path/extracted_filename, index=False)
     return df
 
 
-def load_extracted_training_data(path=None) -> pd.DataFrame:
-    if path is None:
-        path = DATA_DIR/TRAINING_DATA_FILENAME
-    else:
-        path = Path(path)
-        if path.is_dir():
-            path = path / TRAINING_DATA_FILENAME
+def load_extracted_data(directory=None, filename=None) -> pd.DataFrame:
+    if directory is None:
+        directory = DATA_DIR
+    if filename is None:
+        filename = TRAINING_DATA_FILENAME
+    path = directory / filename
     return pd.read_csv(path)
+# alias for load_extracted_data
+load_training_data = load_extracted_data
 
 
 def plot_fit(y_true, y_pred, save=True):

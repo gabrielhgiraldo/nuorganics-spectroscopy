@@ -25,13 +25,15 @@ from spectroscopy.app_utils import (
     get_model_dir,
     get_training_data_path,
     get_user_settings,
-    load_all_model_metrics, load_inference_data,
+    inference_models,
+    load_all_model_metrics,
+    load_inference_data,
     load_training_data, 
     save_user_settings,
     upload_inference_data,
     upload_training_data,
 )
-from spectroscopy.model import load_model, train_models
+from spectroscopy.model import train_models
 
 
 
@@ -141,20 +143,17 @@ def on_train_models(n_clicks, training_targets):
            State('inference-target-selection','value')]
 )
 def on_inference(inference_clicks, contents, filenames, inference_targets):
-    if contents is not None and filenames is not None:
-        return [model_data_table(upload_inference_data(contents, filenames), 'inference')]
+    if contents and filenames:
+        data = upload_inference_data(contents, filenames)
+    elif inference_clicks and inference_targets:
+        data = inference_models(inference_targets)
     else:
         try:
             data = load_inference_data()
-            return [model_data_table(data, 'inference')]
         except FileNotFoundError:
             raise PreventUpdate
-    # model_dir = get_model_dir()
-    # # get samples directory
-    # dfs = []
-    # for target in inference_targets:
-    #     model = load_model(target, model_dir)
-    #     model.predict()
+
+    return model_data_table(data, 'inference')
 
     
 
