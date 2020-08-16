@@ -19,7 +19,7 @@ DEFAULT_USER_CONFIGS = {
         'data-path':'%(project-path)s/data',
         'training-data-path':'%(data-path)s/training',
         'testing-data-path':'%(data-path)s/testing',
-        'output-path':'%(project-path)s/results',
+        'results-data-path':'%(project-path)s/results',
     }
 }
 
@@ -92,6 +92,10 @@ def load_data(data_path):
 def load_training_data():
     training_data_path = get_training_data_path()
     return load_data(training_data_path)
+
+
+def load_inference_data():
+    inference_data_path = get_results_data_path()
 
 
 def upload_data(path, contents, filenames):
