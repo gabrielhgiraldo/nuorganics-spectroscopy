@@ -28,9 +28,10 @@ from spectroscopy.app_utils import (
     load_all_model_metrics,
     load_training_data, 
     save_user_settings,
+    upload_inference_data,
     upload_training_data,
 )
-from spectroscopy.model import train_models
+from spectroscopy.model import load_model, train_models
 from spectroscopy.utils import get_wavelength_columns
 
 
@@ -100,9 +101,9 @@ def on_save(n_clicks, *args):
 @app.callback(
     output=Output('training-table-wrapper', 'children'),
     inputs=[Input('upload-training', 'contents')],
-    state=[State('upload-training', 'filename'),
-           State('upload-training', 'last_modified')])
-def update_training_data(contents, filenames, last_modifieds):
+    state=[State('upload-training', 'filename')]
+)
+def update_training_data(contents, filenames):
     if contents is not None and filenames is not None:
         return [model_data_table(upload_training_data(contents, filenames), 'training')]
     else:
@@ -133,20 +134,30 @@ def on_train_models(n_clicks, training_targets):
     model_metrics = load_all_model_metrics()
     return model_performance_section(model_metrics)
 
-# @app.callback(
-#     output=Output('inference-feedback', 'children'),
-#     inputs=[Input('run-inference', 'n_clicks')],
-#     state=[State('inference-target-selection','value')]
-# )
-# def on_inference(inference_clicks, inference_targets):
-#     if inference_clicks is None:
-#         raise PreventUpdate
-#     model_dir = get_model_dir()
-#     # get samples directory
-#     dfs = []
-#     for target in inference_targets:
-#         model = load_model(target, model_dir)
-#         model.predict()
+# TODO: check which input triggered it
+@app.callback(
+    output=Output('inference-table-wrapper', 'children'),
+    inputs=[Input('run-inference', 'n_clicks'),
+            Input('upload-inference','contents')],
+    state=[State('upload-inference', 'filename'),
+           State('inference-target-selection','value')]
+)
+def on_inference(inference_clicks, contents, filenames, inference_targets):
+    if contents is not None and filenames is not None:
+        return [model_data_table(upload_inference_data(contents, filenames), 'inference')]
+    else:
+        try:
+            data = load_inference_data()
+            data = data.drop(get_wavelength_columns(data), axis=1)
+            return [model_data_table(data, 'inference')]
+        except FileNotFoundError:
+            raise PreventUpdate
+    # model_dir = get_model_dir()
+    # # get samples directory
+    # dfs = []
+    # for target in inference_targets:
+    #     model = load_model(target, model_dir)
+    #     model.predict()
 
     
 

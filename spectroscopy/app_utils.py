@@ -62,41 +62,57 @@ def save_user_settings(new_settings_values):
     with USER_CONFIG_PATH.open('w') as f:
         user_config.write(f)
 
+# TODO: generalize these and include in custom upload_data_section component
 
 def get_training_data_path():
     return Path(get_user_settings()['paths']['training-data-path'])
 
-    
-def load_training_data():
-    training_data_path = get_training_data_path()
+
+def get_results_data_path():
+    return Path(get_user_settings()['paths']['output-path'])
+
+
+def load_data(data_path):
     try:
         logger.info('loading extracted data')
-        return load_extracted_training_data(training_data_path)
+        return load_extracted_training_data(data_path)
     except FileNotFoundError:
         message = (
-            f'no previously extracted data found at {training_data_path}'
+            f'no previously extracted data found at {data_path}'
             '\n extracting data from raw files'
         )
         logger.warning(message)
         try:
-            return extract_data(training_data_path)
+            return extract_data(data_path)
         except FileNotFoundError as e:
             logger.warning(e)
             raise
 
 
-def upload_training_data(contents, filenames):
+def load_training_data():
     training_data_path = get_training_data_path()
-    training_data_path.mkdir(exist_ok=True, parents=True)
+    return load_data(training_data_path)
+
+
+def upload_data(path, contents, filenames):
+    path.mkdir(exist_ok=True, parents=True)
     for content, filename in zip(contents, filenames):
         content_type, _, content_string = content.partition(',')
         decoded = base64.b64decode(content_string)
-        with open(training_data_path/filename, 'wb') as f:
+        with open(path/filename, 'wb') as f:
             f.write(decoded)
-    data = extract_data(training_data_path)
+    data = extract_data(path)
     data = data.drop(get_wavelength_columns(data), axis=1)
     return data
-        
+
+
+def upload_training_data(contents, filenames):
+    training_data_path = get_training_data_path()
+    return upload_data(training_data_path, contents, filenames)
+
+
+def upload_inference_data(contents, filenames):
+    inference_data_path = get_results_data_path()       
 
 def get_model_dir():
     return Path(get_user_settings()['paths']['project-path'])

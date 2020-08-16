@@ -25,7 +25,8 @@ def render_layout():
         html.H3('Nuorganics Spectroscopy Modeling'),
         dcc.Tabs(
             id='tabs',
-            value='training-tab',
+            value='inference-tab',
+            persistence=True,
             children=[
                 dcc.Tab(label='Settings', value='settings-tab'),
                 dcc.Tab(label='Training', value='training-tab'),
@@ -183,20 +184,13 @@ def model_card(model_tag, metrics):
     )
 
 
-# TODO: include residual graphs, fit graphs, other graphs
+# TODO: include residual graphs, fit graphs, other graphs,
+# TODO: include maximum value, minimum value for each metric, stdev, etc.
 def model_performance_section(model_metrics):
-    # load model metrics
-    # create card for every model
     metrics_cards = []
     for model, metrics in model_metrics.items():
-        # card = html.Div(
-        #     children=[
-        #         html.P(model+':'),
-        #         html.P(str(metrics))]
-        # )
         card = model_card(model, metrics)
         metrics_cards.append(card)
-
     return html.Div(
         children=[html.H5('Performance'), *metrics_cards]
     )
@@ -235,6 +229,7 @@ def inference_content():
     return html.Div([
         # select which targets you want to include in inference (which models)
         inference_target_selector(),
+        model_data_section('inference'),
         # button for running inference
         html.Button('run inference', id='run-inference', n_clicks=0)
     ])
