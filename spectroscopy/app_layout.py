@@ -166,7 +166,9 @@ def model_metrics_section(model_metrics):
     metrics_cards = []
     for model, metrics in model_metrics.items():
         card = html.Div(
-            children=[str(metrics)]
+            children=[
+                html.P(model+':'),
+                html.P(str(metrics))]
         )
         metrics_cards.append(card)
 
