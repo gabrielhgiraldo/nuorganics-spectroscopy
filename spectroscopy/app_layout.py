@@ -7,7 +7,7 @@ from dash_table import DataTable
 
 from spectroscopy.app_utils import get_user_settings
 from spectroscopy.utils import (
-    AVAILABLE_TARGETS,
+    AVAILABLE_TARGETS, get_wavelength_columns,
 )
 
 METRIC_PRECISION = 2
@@ -68,8 +68,11 @@ def settings_content():
         ],
         className='container'
     )
+
+    
 ## TRAININING
 def model_data_table(data, tag):
+    data = data.drop(get_wavelength_columns(data), axis=1)
     return html.Div([
         DataTable(
             id=f'{tag}-data-table',

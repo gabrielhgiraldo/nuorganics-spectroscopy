@@ -69,7 +69,7 @@ def get_training_data_path():
 
 
 def get_results_data_path():
-    return Path(get_user_settings()['paths']['output-path'])
+    return Path(get_user_settings()['paths']['results-data-path'])
 
 
 def load_data(data_path):
@@ -96,6 +96,7 @@ def load_training_data():
 
 def load_inference_data():
     inference_data_path = get_results_data_path()
+    return load_data(inference_data_path)
 
 
 def upload_data(path, contents, filenames):
@@ -116,10 +117,13 @@ def upload_training_data(contents, filenames):
 
 
 def upload_inference_data(contents, filenames):
-    inference_data_path = get_results_data_path()       
+    inference_data_path = get_results_data_path()     
+    return upload_data(inference_data_path, contents, filenames)  
+
 
 def get_model_dir():
     return Path(get_user_settings()['paths']['project-path'])
+
 
 def load_all_model_metrics():
     model_dir = get_model_dir()

@@ -25,14 +25,13 @@ from spectroscopy.app_utils import (
     get_model_dir,
     get_training_data_path,
     get_user_settings,
-    load_all_model_metrics,
+    load_all_model_metrics, load_inference_data,
     load_training_data, 
     save_user_settings,
     upload_inference_data,
     upload_training_data,
 )
 from spectroscopy.model import load_model, train_models
-from spectroscopy.utils import get_wavelength_columns
 
 
 
@@ -109,7 +108,6 @@ def update_training_data(contents, filenames):
     else:
         try:
             data = load_training_data()
-            data = data.drop(get_wavelength_columns(data), axis=1)
             return [model_data_table(data, 'training')]
         except FileNotFoundError:
             raise PreventUpdate
@@ -148,7 +146,6 @@ def on_inference(inference_clicks, contents, filenames, inference_targets):
     else:
         try:
             data = load_inference_data()
-            data = data.drop(get_wavelength_columns(data), axis=1)
             return [model_data_table(data, 'inference')]
         except FileNotFoundError:
             raise PreventUpdate
