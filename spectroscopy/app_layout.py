@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 # TODO: order columns
 # TODO: include wavelength columns in export
 # TODO: split layout amongst tab sections?
+# TODO: add loading messages to loaders
 
 ## GENERAL
 def render_layout():
@@ -69,7 +70,7 @@ def settings_content():
         className='container'
     )
 
-    
+
 ## TRAININING
 def model_data_table(data, tag):
     data = data.drop(get_wavelength_columns(data), axis=1)
@@ -112,19 +113,20 @@ def model_data_table(data, tag):
     )
 
 
-
-def training_target_selector():
-    # checkboxes for which models to do inference with
+# TODO: create generic target selector
+def target_selector(tag):
     options = [{**target, 'disabled':False} for target in TARGET_OPTIONS]
     return html.Div([
         dcc.Checklist(
-            id='training-target-selection',
+            id=f'{tag}-target-selection',
             options=options,
             labelStyle={'display':'inline-block'},
-            style={'display':'inline-block'}
+            style={'display':'inline-block'},
+            value=AVAILABLE_TARGETS
         ),
-        html.P([html.Small('select models to train')]),
+        html.P([html.Small(f'select models to {tag}')]),
     ])
+
 
 # TODO: create custom component for this
 # TODO: make these collapsible 
@@ -141,7 +143,7 @@ def model_data_section(tag):
                         'Upload Files',
                     ),
                 ],
-                style={'float':'left'}
+                style={'float':'left','z-index':1,'position':'relative'}
             ),
             dcc.Loading(id=f'{tag}-table-wrapper'),
         ],
@@ -152,7 +154,7 @@ def trained_models_section():
     return html.Div(
         children=[
             html.H4('Models', className='u-cf'),
-            training_target_selector(),
+            target_selector('training'),
             html.Button(
                 'train model(s)',
                 id='train-models',
@@ -210,28 +212,13 @@ def training_content():
         ],
     )
 
-    
-
 
 ## INFERENCE
-
-def inference_target_selector():
-    # checkboxes for which models to do inference with
-    # TODO: enable targets based on  available trained models
-    # loop through targets and see which ones have models saved in folders
-    options = [{**target, 'disabled':True} for target in TARGET_OPTIONS]
-    return dcc.Checklist(
-        id='inference-target-selection',
-        options=options,
-        labelStyle={'display':'inline-block'},
-        style={'display':'inline-block'}
-    )
-
 # TODO: add table for uploading samples for inference
 def inference_content():
     return html.Div([
         # select which targets you want to include in inference (which models)
-        inference_target_selector(),
+        target_selector('inference'),
         model_data_section('inference'),
         # button for running inference
         html.Button('run inference', id='run-inference', n_clicks=0)
