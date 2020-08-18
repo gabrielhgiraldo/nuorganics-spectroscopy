@@ -7,6 +7,7 @@ from spectroscopy.model import load_model, load_model_metrics, transform_data
 from spectroscopy.utils import (
     AVAILABLE_TARGETS,
     INFERENCE_RESULTS_FILENAME,
+    TRAINING_DATA_FILENAME,
     extract_data,
     load_extracted_data
 )
@@ -106,7 +107,7 @@ def upload_data(path, contents, filenames):
         decoded = base64.b64decode(content_string)
         with open(path/filename, 'wb') as f:
             f.write(decoded)
-    data = extract_data(path, INFERENCE_RESULTS_FILENAME)
+    data = extract_data(path, TRAINING_DATA_FILENAME)
     return data
 
 

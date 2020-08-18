@@ -65,6 +65,7 @@ def render_content(tab):
     else:
         return ['no content available for tab value']
 
+
 # save settings callback
 def generate_settings_callback_states():
     settings = get_user_settings()
@@ -131,7 +132,7 @@ def on_train_models(n_clicks, training_targets):
     model_metrics = load_all_model_metrics()
     return model_performance_section(model_metrics)
 
-# TODO: check which input triggered it
+
 @app.callback(
     output=Output('inference-table-wrapper', 'children'),
     inputs=[Input('run-inference', 'n_clicks'),

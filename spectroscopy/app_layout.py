@@ -72,6 +72,7 @@ def settings_content():
 
 
 ## TRAININING
+# TODO: add checkboxes for selecting which files to export
 def model_data_table(data, tag):
     data = data.drop(get_wavelength_columns(data), axis=1)
     return html.Div([
