@@ -135,7 +135,6 @@ def model_data_table(data, tag):
 def target_selector(tag):
     options = [{**target, 'disabled':False} for target in TARGET_OPTIONS]
     return html.Div([
-        html.Div(className='u-cf'),
         dcc.Checklist(
             id=f'{tag}-target-selection',
             options=options,
@@ -149,6 +148,7 @@ def target_selector(tag):
 
 # TODO: create custom component for this
 # TODO: make these collapsible 
+# TODO: accept only certaint tpyes of files as variable
 def model_data_section(tag):
     return html.Div(
         children=[
@@ -166,6 +166,7 @@ def model_data_section(tag):
             ),
             dcc.Loading(id=f'{tag}-table-wrapper'),
         ],
+        className="row"
     )
 
 
