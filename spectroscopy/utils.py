@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 # from sklearn.impute import SimpleImputer
 
-DATETIME_FORMAT = '%m-%d-%y'
+SCAN_FILE_DATETIME_FORMAT = '%m-%d-%y'
 DATA_DIR = Path(__file__).parents[1] / 'data'
 TRAINING_DATA_FILENAME = 'training_data.csv'
 INFERENCE_RESULTS_FILENAME = 'inference_results.csv'
@@ -43,7 +43,7 @@ def _extract_spect_filename_info(filename):
         process_method = ''
     process_method = process_method.lower()
     sample_date_string = re.search(r'\d+-\d+-\d+',remaining)[0].strip()
-    sample_date = pd.to_datetime(sample_date_string, format=DATETIME_FORMAT)
+    sample_date = pd.to_datetime(sample_date_string, format=SCAN_FILE_DATETIME_FORMAT)
     run_number = filename.partition('#')[2].partition('.')[0]
     return sample_name, process_method, sample_date, run_number
 
@@ -109,7 +109,7 @@ def _extract_lab_report_filename_info(filename):
                      .strip()
     sample_name = sample_name.strip().lower()
     sample_date_string = re.search(r'\d+-\d+-\d+',sample_name_date)[0].strip()
-    sample_date = pd.to_datetime(sample_date_string, format=DATETIME_FORMAT)
+    sample_date = pd.to_datetime(sample_date_string, format=SCAN_FILE_DATETIME_FORMAT)
     return sample_name, sample_date
 
 def parse_lab_report(filepath) -> pd.DataFrame:

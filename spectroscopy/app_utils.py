@@ -2,6 +2,9 @@ import base64
 from configparser import ConfigParser
 import logging
 from pathlib import Path
+from datetime import datetime
+
+import pandas as pd
 
 from spectroscopy.model import load_model, load_model_metrics, transform_data
 from spectroscopy.utils import (
@@ -162,6 +165,7 @@ def inference_models(model_tags, data=None, results_path=None):
     for model_tag, model in models.items():
         logger.info(f'running inference with model {model_tag}')
         data[f'predicted_{model_tag}'] = model.predict(X)
+        data[f'predicted_on'] = pd.to_datetime(datetime.now())
     data.to_csv(results_path/INFERENCE_RESULTS_FILENAME, index=False)
     return data
 

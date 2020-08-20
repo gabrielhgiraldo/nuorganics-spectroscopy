@@ -3,6 +3,8 @@ import logging
 import dash_core_components as dcc
 import dash_html_components as html
 from dash_table import DataTable
+from pandas.api.types import is_datetime64_any_dtype as is_datetime
+
 
 
 from spectroscopy.app_utils import get_user_settings
@@ -74,7 +76,14 @@ def settings_content():
 ## TRAININING
 # TODO: add checkboxes for selecting which files to export
 def model_data_table(data, tag):
-    data = data.drop(get_wavelength_columns(data), axis=1)
+    columns = []
+    for column in data.columns:
+        column_config = {
+            'name':column,
+            'id':column,
+            'type': 'datetime' if is_datetime(data[column]) else 'text'
+        }
+        columns.append(column_config)
     return html.Div([
         DataTable(
             id=f'{tag}-data-table',
