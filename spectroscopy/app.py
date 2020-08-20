@@ -21,6 +21,7 @@ from spectroscopy.app_layout import (
 )
 from spectroscopy.app_utils import (
     get_model_dir,
+    get_inference_data_path,
     get_training_data_path,
     get_user_settings,
     inference_models,
@@ -179,7 +180,7 @@ def on_data_change(data, table_id):
         pd.DataFrame(data).to_csv(inference_data_path/INFERENCE_RESULTS_FILENAME, index=False)
     else:
         raise PreventUpdate
-    
+
     return f'total samples: {len(data)}'
 
 app.layout = render_layout

@@ -72,7 +72,7 @@ def get_training_data_path():
     return Path(get_user_settings()['paths']['training-data-path'])
 
 
-def get_results_data_path():
+def get_inference_data_path():
     return Path(get_user_settings()['paths']['results-data-path'])
 
 
@@ -99,7 +99,7 @@ def load_training_data():
 
 
 def load_inference_data():
-    inference_data_path = get_results_data_path()
+    inference_data_path = get_inference_data_path()
     return load_data(inference_data_path, INFERENCE_RESULTS_FILENAME)
 
 
@@ -120,7 +120,7 @@ def upload_training_data(contents, filenames):
 
 
 def upload_inference_data(contents, filenames):
-    inference_data_path = get_results_data_path()     
+    inference_data_path = get_inference_data_path()     
     return upload_data(inference_data_path, contents, filenames)  
 
 
@@ -156,7 +156,7 @@ def load_models(tags):
 
 def inference_models(model_tags, data=None, results_path=None):
     if results_path is None:
-        results_path = get_results_data_path()
+        results_path = get_inference_data_path()
     if data is None:
         data = load_inference_data()
 
