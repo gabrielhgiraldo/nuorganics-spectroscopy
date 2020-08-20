@@ -98,6 +98,10 @@ def model_data_table(data, tag):
             export_format='xlsx',
             row_deletable=True,
             # row_selectable=True,
+            # TODO: add option to include wavelength columns in export
+            hidden_columns=get_wavelength_columns(data),
+            css=[{"selector": ".show-hide", "rule": "display: none"}],
+            # export_columns='all',
             style_table={
                 # 'width':'100%',
                 'height': '800px',
