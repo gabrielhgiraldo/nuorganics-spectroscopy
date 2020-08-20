@@ -6,7 +6,7 @@ import webbrowser
 
 import dash
 from dash.exceptions import PreventUpdate
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, MATCH, Output, State
 import matplotlib
 matplotlib.use('agg')
 
@@ -31,6 +31,7 @@ from spectroscopy.app_utils import (
     upload_training_data,
 )
 from spectroscopy.model import train_models
+from spectroscopy.utils import INFERENCE_RESULTS_FILENAME, TRAINING_DATA_FILENAME
 
 
 
@@ -153,7 +154,32 @@ def on_inference(inference_clicks, contents, filenames, inference_targets):
 
     return model_data_table(data, 'inference')
 
+# TODO: adjust callbacks to handle deletion of data 
+# TODO: figure out how to select certain rows for export
+# TODO: figure out how to select certains rows for inference?
+# callback for syncing datatable data with storage
+@app.callback(
+    output=Output({"type":'total-samples', "index":MATCH},'children'),
+    inputs=[Input({"type":'data-table',"index":MATCH},'data')],
+    state=[State({"type":'data-table',"index":MATCH},'id')],
+    prevent_initial_call=True
+)
+def on_data_change(data, table_id):
+    if data is None:
+        raise PreventUpdate
+    tag = table_id['index']
+    if tag == 'training':
+        # TODO: trigger confirmation?
+        # save data to 'tag' associated location
+        training_data_path = get_training_data_path()
+        pd.DataFrame(data).to_csv(training_data_path/TRAINING_DATA_FILENAME, index=False)
+    elif tag == 'inference':
+        inference_data_path = get_inference_data_path()
+        pd.DataFrame(data).to_csv(inference_data_path/INFERENCE_RESULTS_FILENAME, index=False)
+    else:
+        raise PreventUpdate
     
+    return f'total samples: {len(data)}'
 
 app.layout = render_layout
 

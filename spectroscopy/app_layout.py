@@ -86,12 +86,18 @@ def model_data_table(data, tag):
         columns.append(column_config)
     return html.Div([
         DataTable(
-            id=f'{tag}-data-table',
-            columns=[{"name": column, "id": column} for column in data.columns],
+            id={
+                "type":'data-table',
+                "index":tag
+            },
+            # columns=[{"name": column, "id": column} for column in data.columns],
+            columns=columns,
             data=data.to_dict('records'),
             fixed_rows={'headers': True},
             sort_action='native',
             export_format='xlsx',
+            row_deletable=True,
+            # row_selectable=True,
             style_table={
                 # 'width':'100%',
                 'height': '800px',
@@ -117,7 +123,7 @@ def model_data_table(data, tag):
             tooltip_duration=None,
             tooltip_delay=800
         ),
-        html.P(f'total: {len(data.index)} samples'),
+        html.P(f'total: {len(data.index)} samples', id={"type":'total-samples', "index":tag}),
         ],
         style={'textAlign':'center'}
     )
