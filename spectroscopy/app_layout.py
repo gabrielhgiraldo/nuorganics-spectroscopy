@@ -72,9 +72,7 @@ def settings_content():
         className='container'
     )
 
-
 ## TRAININING
-# TODO: add checkboxes for selecting which files to export
 def model_data_table(data, tag):
     columns = []
     for column in data.columns:
@@ -196,7 +194,8 @@ def metric_card(metric_name, metric_value, n_columns=1):
         className=f"{word_to_number[int(12/n_columns)]} columns"
     )
 
-
+# TODO: add model performance graphs here?
+# TODO: split metrics into sections (train vs test)
 def model_card(model_tag, metrics):
     metric_cards = [metric_card(name, value, len(metrics)) for name, value in metrics.items()]
     return html.Div(
@@ -223,6 +222,7 @@ def model_performance_section(model_metrics):
 
 
 # TODO: adjust column ordering in training datatable
+# TODO: add testing data section and results
 def training_content():
     return html.Div(
         children=[

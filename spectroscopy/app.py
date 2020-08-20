@@ -9,6 +9,7 @@ from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, MATCH, Output, State
 import matplotlib
 matplotlib.use('agg')
+import pandas as pd
 
 from spectroscopy.app_layout import (
     inference_content,
