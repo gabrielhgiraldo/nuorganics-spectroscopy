@@ -133,6 +133,7 @@ def model_data_table(data, tag):
 def target_selector(tag):
     options = [{**target, 'disabled':False} for target in TARGET_OPTIONS]
     return html.Div([
+        html.Div(className='u-cf'),
         dcc.Checklist(
             id=f'{tag}-target-selection',
             options=options,
@@ -169,7 +170,7 @@ def model_data_section(tag):
 def trained_models_section():
     return html.Div(
         children=[
-            html.H4('Models', className='u-cf'),
+            html.H4('Models'),
             target_selector('training'),
             html.Button(
                 'train model(s)',
@@ -230,13 +231,10 @@ def training_content():
 
 
 ## INFERENCE
-# TODO: add table for uploading samples for inference
 def inference_content():
     return html.Div([
-        # select which targets you want to include in inference (which models)
-        target_selector('inference'),
         model_data_section('inference'),
-        # button for running inference
+        target_selector('inference'),
         html.Button('run inference', id='run-inference', n_clicks=0)
     ])
 
