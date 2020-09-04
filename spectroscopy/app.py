@@ -156,7 +156,6 @@ def on_inference(inference_clicks, contents, filenames, inference_targets):
 
     return model_data_table(data, 'inference')
 
-# TODO: adjust callbacks to handle deletion of data 
 # TODO: figure out how to select certain rows for export
 # TODO: figure out how to select certains rows for inference?
 # callback for syncing datatable data with storage
@@ -170,9 +169,9 @@ def on_data_change(data, table_id):
     if data is None:
         raise PreventUpdate
     tag = table_id['index']
+    # save data to 'tag' associated location
     if tag == 'training':
         # TODO: trigger confirmation?
-        # save data to 'tag' associated location
         training_data_path = get_training_data_path()
         pd.DataFrame(data).to_csv(training_data_path/TRAINING_DATA_FILENAME, index=False)
     elif tag == 'inference':

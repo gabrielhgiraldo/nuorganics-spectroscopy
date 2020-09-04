@@ -21,8 +21,8 @@ DEFAULT_USER_CONFIGS = {
     'paths':{
         'project-path':str(Path().home()/'spectroscopy'),
         'data-path':'%(project-path)s/data',
-        'training-data-path':'%(data-path)s/training',
-        'testing-data-path':'%(data-path)s/testing',
+        # 'training-data-path':'%(data-path)s/training',
+        # 'testing-data-path':'%(data-path)s/testing',
         'results-data-path':'%(project-path)s/results',
     }
 }
@@ -67,9 +67,11 @@ def save_user_settings(new_settings_values):
         user_config.write(f)
 
 # TODO: generalize these and include in custom upload_data_section component
+def get_all_data_path():
+    return Path(get_user_settings()['paths']['data-path'])
 
 def get_training_data_path():
-    return Path(get_user_settings()['paths']['training-data-path'])
+    return get_all_data_path()
 
 
 def get_inference_data_path():

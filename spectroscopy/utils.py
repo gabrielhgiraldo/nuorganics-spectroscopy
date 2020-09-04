@@ -150,7 +150,7 @@ def check_data_sample_name_match(df_lr, df_samples):
     unmatched_names = set(df_lr['sample_name'].unique()) - set(df_samples['sample_name'].unique())
     return unmatched_names
 
-
+# TODO: improve performance of extraction with concurrency
 def extract_data(data_path=None, extracted_filename=None):
     if extracted_filename is None:
         extracted_filename = TRAINING_DATA_FILENAME
