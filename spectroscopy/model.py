@@ -89,7 +89,7 @@ def define_model():
     # return LGBMRegressor()
     preprocessor = ColumnTransformer(
         transformers=[
-            ('categorical', OneHotEncoder(), ['process_method'])
+            ('categorical', OneHotEncoder(handle_unknown='ignore'), ['process_method'])
         ],
         remainder='passthrough'
     )
