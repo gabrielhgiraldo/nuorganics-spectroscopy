@@ -105,14 +105,14 @@ def load_inference_data():
     return load_data(inference_data_path, INFERENCE_RESULTS_FILENAME)
 
 
-def upload_data(path, contents, filenames):
+def upload_data(path, contents, filenames, extracted_filename=TRAINING_DATA_FILENAME):
     path.mkdir(exist_ok=True, parents=True)
     for content, filename in zip(contents, filenames):
         content_type, _, content_string = content.partition(',')
         decoded = base64.b64decode(content_string)
         with open(path/filename, 'wb') as f:
             f.write(decoded)
-    data = extract_data(path, TRAINING_DATA_FILENAME)
+    data = extract_data(path, extracted_filename)
     return data
 
 
@@ -123,7 +123,12 @@ def upload_training_data(contents, filenames):
 
 def upload_inference_data(contents, filenames):
     inference_data_path = get_inference_data_path()     
-    return upload_data(inference_data_path, contents, filenames)  
+    return upload_data(
+        path=inference_data_path,
+        contents=contents,
+        filenames=filenames,
+        extracted_filename=INFERENCE_RESULTS_FILENAME
+    )  
 
 
 def get_model_dir():
@@ -155,7 +160,7 @@ def load_models(tags):
             logger.warn(f'no model {tag} found in dir {model_dir}')
     return models
 
-
+# TODO: speed up inference of models with concurrency
 def inference_models(model_tags, data=None, results_path=None):
     if results_path is None:
         results_path = get_inference_data_path()
