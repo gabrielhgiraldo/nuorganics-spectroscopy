@@ -14,7 +14,6 @@ from spectroscopy.utils import (
     extract_data,
     load_extracted_data
 )
-
 INTERNAL_CONFIG_FILEPATH = Path(__file__).parent / 'config.ini'
 USER_CONFIG_PATH = Path('config.ini')
 DEFAULT_USER_CONFIGS = {

@@ -3,7 +3,8 @@ import logging
 import dash_core_components as dcc
 import dash_html_components as html
 from dash_table import DataTable
-from pandas.api.types import is_datetime64_any_dtype as is_datetime
+from pandas.api.types import is_datetime64_any_dtype as is_datetime, is_numeric_dtype
+
 
 
 
@@ -12,7 +13,9 @@ from spectroscopy.utils import (
     AVAILABLE_TARGETS, get_wavelength_columns,
 )
 
+ENABLE_UI_UPLOAD = False
 METRIC_PRECISION = 2
+TABLE_NUMERIC_PRECISION = 2
 TARGET_OPTIONS = [{'label':target, 'value':target} for target in AVAILABLE_TARGETS]
 logger = logging.getLogger(__name__)
 
@@ -80,8 +83,13 @@ def model_data_table(data, tag):
         column_config = {
             'name':column,
             'id':column,
-            'type': 'datetime' if is_datetime(data[column]) else 'text'
+            'type': 'datetime' if is_datetime(data[column]) else 'text',
         }
+        if is_numeric_dtype(data[column]):
+            data[column] = data[column].round(TABLE_NUMERIC_PRECISION)
+            # column_config['format'] = {
+            #     'specifier':f".{TABLE_NUMERIC_PRECISION}f"
+            # }
         columns.append(column_config)
     return html.Div([
         DataTable(
