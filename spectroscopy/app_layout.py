@@ -73,6 +73,7 @@ def settings_content():
     )
 
 ## TRAININING
+# TODO: change decimal precision of predicted results
 def model_data_table(data, tag):
     columns = []
     for column in data.columns:
@@ -92,6 +93,7 @@ def model_data_table(data, tag):
             columns=columns,
             data=data.to_dict('records'),
             fixed_rows={'headers': True},
+            # fixed_columns={'headers':True},
             sort_action='native',
             export_format='xlsx',
             row_deletable=True,
@@ -131,7 +133,6 @@ def model_data_table(data, tag):
     )
 
 
-# TODO: create generic target selector
 def target_selector(tag):
     options = [{**target, 'disabled':False} for target in TARGET_OPTIONS]
     return html.Div([
@@ -195,16 +196,30 @@ def metric_card(metric_name, metric_value, n_columns=1):
         className=f"{word_to_number[int(12/n_columns)]} columns"
     )
 
+def metrics_section(section_name, metrics):
+    cards = []
+    for metric, metric_value in metrics.items():
+        card = metric_card(metric, metric_value, len(metrics))
+        cards.append(card)
+    
+    return html.Div([
+        html.B(html.Small(section_name)),
+        html.Div(cards, className="row")
+    ])
+
 # TODO: add model performance graphs here?
 # TODO: split metrics into sections (train vs test)
 def model_card(model_tag, metrics):
-    metric_cards = [metric_card(name, value, len(metrics)) for name, value in metrics.items()]
+    metrics_sections = []
+    for section, section_metrics in metrics.items():
+        metrics_sections.append(metrics_section(section, section_metrics))
+
     return html.Div(
         children=[
             html.B(model_tag),
             html.Div(
-                children=metric_cards,
-                className="row"
+                children=metrics_sections,
+                className="row model-card"
             )
         ]
     )
@@ -229,7 +244,6 @@ def training_content():
         children=[
             dcc.Loading(id='training-feedback'),
             model_data_section('training'),
-            # model_data_section('testing'),
             trained_models_section(),
         ],
     )

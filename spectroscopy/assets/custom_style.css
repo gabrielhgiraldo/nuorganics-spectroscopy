@@ -13,3 +13,8 @@ div[id^='upload-']{
     position: relative;
     z-index: 1;
 }
+div.model-card{
+    margin-bottom:20px;
+    border:1px;
+    box-shadow: black;
+}
