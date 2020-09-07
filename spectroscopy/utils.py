@@ -158,11 +158,7 @@ def check_data_sample_name_match(df_lr, df_samples):
     return unmatched_names
 
 # TODO: improve performance of extraction with concurrency
-def extract_data(data_path=None, extracted_filename=None):
-    if extracted_filename is None:
-        extracted_filename = TRAINING_DATA_FILENAME
-    if data_path is None:
-        data_path = DATA_DIR
+def extract_data(data_path=DATA_DIR, extracted_filename=TRAINING_DATA_FILENAME, cache=True):
     # handle transmittance
     df_trms = parse_trm_files(data_path)
     # try and see if there's groundtruth for these files
@@ -183,15 +179,11 @@ def extract_data(data_path=None, extracted_filename=None):
                                             .reset_index(drop=True)
         # drop null Ammonia-N (unmatched)
         df = df.dropna(subset=AVAILABLE_TARGETS)
-    df.to_csv(data_path/extracted_filename, index=False)
+    if cache:
+        df.to_csv(data_path/extracted_filename, index=False)
     return df
 
-
-def load_extracted_data(directory=None, filename=None) -> pd.DataFrame:
-    if directory is None:
-        directory = DATA_DIR
-    if filename is None:
-        filename = TRAINING_DATA_FILENAME
+def load_extracted_data(directory=DATA_DIR, filename=TRAINING_DATA_FILENAME) -> pd.DataFrame:
     path = directory / filename
     return pd.read_csv(path)
 # alias for load_extracted_data
