@@ -6,10 +6,10 @@ import webbrowser
 
 import dash
 from dash.exceptions import PreventUpdate
-from dash.dependencies import Input, MATCH, Output, State
+from dash.dependencies import Input, Output, State
 import matplotlib
 matplotlib.use('agg')
-import pandas as pd
+# import pandas as pd
 
 
 from spectroscopy.app_layout import (
