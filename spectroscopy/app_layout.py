@@ -104,7 +104,7 @@ def model_data_table(data, tag):
             # fixed_columns={'headers':True},
             sort_action='native',
             export_format='xlsx',
-            row_deletable=True,
+            # row_deletable=True,
             # row_selectable=True,
             # TODO: add option to include wavelength columns in export
             hidden_columns=get_wavelength_columns(data),
