@@ -121,7 +121,7 @@ def train_models(targets, model_dir=None, training_data_path=None):
     if model_dir is None:
         model_dir = MODEL_DIR
     model_dir = Path(model_dir)
-    df = load_extracted_data(training_data_path, TRAINING_DATA_FILENAME)
+    df = load_extracted_data(TRAINING_DATA_FILENAME, training_data_path)
     # TODO: make this an sklearn transformer
     X = transform_data(df)
     # TODO: have feature extraction occur in model pipeline

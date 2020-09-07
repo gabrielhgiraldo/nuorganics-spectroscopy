@@ -77,10 +77,10 @@ def get_inference_data_path():
     return Path(get_user_settings()['paths']['results-data-path'])
 
 # TODO: add concurrent extracting of data
-def load_data(data_path, filename=None, cache=True):
+def load_data(filename, data_path, cache=True):
     try:
         logger.info('loading extracted data')
-        return load_extracted_data(data_path, filename)
+        return load_extracted_data(filename, data_path)
     except FileNotFoundError:
         message = (
             f'no previously extracted data found at {data_path}'
@@ -96,12 +96,12 @@ def load_data(data_path, filename=None, cache=True):
 
 def load_training_data():
     training_data_path = get_training_data_path()
-    return load_data(training_data_path, cache=False)
+    return load_data(TRAINING_DATA_FILENAME, training_data_path, cache=False)
 
 
 def load_inference_data():
     inference_data_path = get_inference_data_path()
-    return load_data(inference_data_path, INFERENCE_RESULTS_FILENAME)
+    return load_data(INFERENCE_RESULTS_FILENAME, inference_data_path)
 
 
 def upload_data(path, contents, filenames, extracted_filename=TRAINING_DATA_FILENAME):

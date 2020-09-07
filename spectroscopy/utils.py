@@ -92,7 +92,7 @@ def parse_trm_files(directory_path=None, zero_negatives=True) -> pd.DataFrame:
     directory_path = Path(directory_path)
     try:
         trm_filepaths = directory_path.glob("*.TRM")
-        with ThreadPoolExecutor(max_workers=5) as pool:
+        with ThreadPoolExecutor(max_workers=10) as pool:
             dfs = pool.map(parse_spect_file, trm_filepaths)
         df_trms = pd.concat(dfs)
         if zero_negatives:
@@ -139,7 +139,7 @@ def parse_lab_reports(lab_report_directory=None) -> pd.DataFrame:
 
     try:
         lr_filepaths = lab_report_directory.glob('Lab Report*.csv')
-        with ThreadPoolExecutor(max_workers=5) as pool:
+        with ThreadPoolExecutor(max_workers=10) as pool:
             reports = pool.map(parse_lab_report, lr_filepaths)
         return pd.concat(reports)
     except ValueError:
@@ -190,11 +190,9 @@ def extract_data(data_path=DATA_DIR, extracted_filename=TRAINING_DATA_FILENAME, 
         df.to_csv(data_path/extracted_filename, index=False)
     return df
 
-def load_extracted_data(directory=DATA_DIR, filename=TRAINING_DATA_FILENAME) -> pd.DataFrame:
+def load_extracted_data(filename, directory=DATA_DIR) -> pd.DataFrame:
     path = directory / filename
     return pd.read_csv(path)
-# alias for load_extracted_data
-load_training_data = load_extracted_data
 
 
 def plot_fit(y_true, y_pred, save=True):
