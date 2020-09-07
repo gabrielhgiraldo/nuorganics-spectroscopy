@@ -37,7 +37,7 @@ from spectroscopy.model import train_models
 from spectroscopy.utils import INFERENCE_RESULTS_FILENAME, TRAINING_DATA_FILENAME
 
 
-
+# TODO: implement file change detection system 
 # TODO: add ability to configure included model parameters
 # TODO: add ability to save retrained model(s)
 # TODO: add ability to view and download prediction results

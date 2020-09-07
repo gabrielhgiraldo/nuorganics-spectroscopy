@@ -161,10 +161,10 @@ def get_wavelength_columns(df, lower_bound=None):
 
 # TODO: incorporate sample date
 def check_data_sample_name_match(df_lr, df_samples):
-    unmatched_names = set(df_lr['sample_name'].unique()) - set(df_samples['sample_name'].unique())
-    return unmatched_names
+    lr_ids = set(zip(df_lr['sample_name'], df_lr['sample_date']))
+    samples_ids = set(zip(df_samples['sample_name'], df_samples['sample_date']))
+    return samples_ids - lr_ids
 
-# TODO: improve performance of extraction with concurrency
 def extract_data(data_path=DATA_DIR, extracted_filename=TRAINING_DATA_FILENAME, cache=True):
     # handle transmittance
     df_trms = parse_trm_files(data_path)
