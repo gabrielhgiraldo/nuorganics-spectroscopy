@@ -1,4 +1,5 @@
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import re
 
@@ -90,7 +91,10 @@ def parse_trm_files(directory_path=None, zero_negatives=True) -> pd.DataFrame:
         directory_path = DATA_DIR
     directory_path = Path(directory_path)
     try:
-        df_trms = pd.concat([parse_spect_file(filepath) for filepath in directory_path.glob("*.TRM")])
+        trm_filepaths = directory_path.glob("*.TRM")
+        with ThreadPoolExecutor(max_workers=5) as pool:
+            dfs = pool.map(parse_spect_file, trm_filepaths)
+        df_trms = pd.concat(dfs)
         if zero_negatives:
             # set trms that are < 0 to 0
             num = df_trms._get_numeric_data()
@@ -132,9 +136,12 @@ def parse_lab_reports(lab_report_directory=None) -> pd.DataFrame:
     if lab_report_directory is None:
         lab_report_directory = DATA_DIR
     lab_report_directory = Path(lab_report_directory)
+
     try:
-        return pd.concat([parse_lab_report(lr_filepath) for 
-                                lr_filepath in lab_report_directory.glob('Lab Report*.csv')])
+        lr_filepaths = lab_report_directory.glob('Lab Report*.csv')
+        with ThreadPoolExecutor(max_workers=5) as pool:
+            reports = pool.map(parse_lab_report, lr_filepaths)
+        return pd.concat(reports)
     except ValueError:
         raise FileNotFoundError(f'no lab report files found at {lab_report_directory}')
 
