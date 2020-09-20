@@ -19,9 +19,13 @@ from sklearn.preprocessing import OneHotEncoder
 # import torch.nn.functional as F
 
 
-from spectroscopy.utils import (
+from spectroscopy.data import (
     TRAINING_DATA_FILENAME,
-    load_extracted_data,
+    load_cached_extracted_data,
+    AVAILABLE_TARGETS
+)
+
+from spectroscopy.utils import(
     get_wavelength_columns,
     plot_fit,
 )
@@ -30,6 +34,7 @@ MODEL_FILENAME = 'model.pkl'
 MODEL_METRICS_FILENAME = 'scores.json'
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # class RegressorModule(nn.Module):
 #     def __init__(
@@ -117,22 +122,26 @@ def transform_data(df):
 
 
 # TODO: generalize this for multiple targets
-def train_models(targets, model_dir=None, training_data_path=None):
+def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_data_path=None):
     if model_dir is None:
         model_dir = MODEL_DIR
     model_dir = Path(model_dir)
-    df = load_extracted_data(TRAINING_DATA_FILENAME, training_data_path)
+    if data is None:
+        # TODO: exctract data if there's no cached
+        data = load_cached_extracted_data(TRAINING_DATA_FILENAME, training_data_path)
     # TODO: make this an sklearn transformer
-    X = transform_data(df)
+    X = transform_data(data)
     # TODO: have feature extraction occur in model pipeline
     # TODO: switch printing with logging
     # TODO: add ability to include different experiments in one training run
+    all_scores = {}
+    models = {}
     for target in targets:
         logger.info(f'Fitting {target} model')
         target_model_dir = model_dir / target
-        y = df[target]
+        y = data[target]
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=10)
-        logger.info(f'total samples:{len(df)} training on:{len(X_train)} testing on {len(X_test)}')
+        logger.info(f'total samples:{len(data)} training on:{len(X_train)} testing on {len(X_test)}')
         # TODO: allow for different architectures for each model
         model = define_model()
         model.fit(X_train, y_train)
@@ -146,6 +155,9 @@ def train_models(targets, model_dir=None, training_data_path=None):
             json.dump(scores, f)
         with open(target_model_dir / MODEL_FILENAME, 'wb') as f:
             pickle.dump(model, f)
+        all_scores[target] = scores
+        models[target] = model
+    return all_scores, models
 
 
 def load_model(model_target, model_dir=None):

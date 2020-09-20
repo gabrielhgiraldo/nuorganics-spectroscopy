@@ -2,6 +2,7 @@ import logging
 
 import dash_core_components as dcc
 import dash_html_components as html
+from dash_html_components.Small import Small
 from dash_table import DataTable
 from pandas.api.types import is_datetime64_any_dtype as is_datetime, is_numeric_dtype
 
@@ -9,9 +10,8 @@ from pandas.api.types import is_datetime64_any_dtype as is_datetime, is_numeric_
 
 
 from spectroscopy.app_utils import get_user_settings
-from spectroscopy.utils import (
-    AVAILABLE_TARGETS, get_wavelength_columns,
-)
+from spectroscopy.data import AVAILABLE_TARGETS
+from spectroscopy.utils import get_wavelength_columns
 
 ENABLE_UI_UPLOAD = False
 METRIC_PRECISION = 2
@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 ## GENERAL
 def render_layout():
+    # create data folder and parents
     return html.Div([
         html.H3('Nuorganics Spectroscopy Modeling'),
         dcc.Tabs(
@@ -158,11 +159,12 @@ def target_selector(tag):
 # TODO: create custom component for this
 # TODO: make these collapsible 
 # TODO: accept only certaint tpyes of files as variable
-def model_data_section(tag):
+def model_data_section(tag, enable_upload=True):
     return html.Div(
         children=[
             html.H4(f'{tag} Data'),
             html.Small(f'data to be used for {tag} models'),
+            dcc.Interval(id=f'{tag}-data-sync-interval', interval=60000),
             dcc.Upload(
                 id=f'upload-{tag}',
                 multiple=True,
@@ -171,7 +173,12 @@ def model_data_section(tag):
                         'Upload Files',
                     ),
                 ],
-                style={'float':'left','z-index':1,'position':'relative'}
+                style={
+                    'float':'left',
+                    'z-index':1,
+                    'position':'relative',
+                    'visibility':'visible' if enable_upload else 'hidden'
+                }
             ),
             dcc.Loading(id=f'{tag}-table-wrapper'),
         ],
@@ -251,7 +258,7 @@ def training_content():
     return html.Div(
         children=[
             dcc.Loading(id='training-feedback'),
-            model_data_section('training'),
+            model_data_section('training', enable_upload=False),
             trained_models_section(),
         ],
     )

@@ -6,13 +6,13 @@ from datetime import datetime
 
 import pandas as pd
 
+# from spectroscopy.data import load_data
 from spectroscopy.model import load_model, load_model_metrics, transform_data
-from spectroscopy.utils import (
+from spectroscopy.data import (
     AVAILABLE_TARGETS,
     INFERENCE_RESULTS_FILENAME,
     TRAINING_DATA_FILENAME,
     extract_data,
-    load_extracted_data
 )
 INTERNAL_CONFIG_FILEPATH = Path(__file__).parent / 'config.ini'
 USER_CONFIG_PATH = Path('config.ini')
@@ -27,7 +27,7 @@ DEFAULT_USER_CONFIGS = {
 }
 
 logger = logging.getLogger(__name__)
-
+logger.setLevel(logging.INFO)
 
 def get_user_settings():
     user_config = ConfigParser()
@@ -66,8 +66,13 @@ def save_user_settings(new_settings_values):
         user_config.write(f)
 
 # TODO: generalize these and include in custom upload_data_section component
+def get_project_path():
+    return Path(get_user_settings()['paths']['project-path'])
+
+
 def get_all_data_path():
     return Path(get_user_settings()['paths']['data-path'])
+
 
 def get_training_data_path():
     return get_all_data_path()
@@ -76,48 +81,33 @@ def get_training_data_path():
 def get_inference_data_path():
     return Path(get_user_settings()['paths']['results-data-path'])
 
-# TODO: add concurrent extracting of data
-def load_data(filename, data_path, cache=True):
-    try:
-        logger.info('loading extracted data')
-        return load_extracted_data(filename, data_path)
-    except FileNotFoundError:
-        message = (
-            f'no previously extracted data found at {data_path}'
-            '\n extracting data from raw files'
-        )
-        logger.warning(message)
-        try:
-            return extract_data(data_path, filename, cache)
-        except FileNotFoundError as e:
-            logger.warning(e)
-            raise
+# # TODO: use new SpectroscopyDataEventHandler
+# def load_training_data(skip_paths=None):
+#     training_data_path = get_training_data_path()
+#     return load_data(TRAINING_DATA_FILENAME, training_data_path, cache=True, skip_paths=skip_paths)
+
+# # TODO: use new SpectroscopyDataEventHandler
+# def load_inference_data():
+#     inference_data_path = get_inference_data_path()
+#     return load_data(INFERENCE_RESULTS_FILENAME, inference_data_path)
 
 
-def load_training_data():
-    training_data_path = get_training_data_path()
-    return load_data(TRAINING_DATA_FILENAME, training_data_path, cache=False)
+def upload_data(path, contents, filenames, extracted_filename=TRAINING_DATA_FILENAME,
+                skip_paths=None):
 
-
-def load_inference_data():
-    inference_data_path = get_inference_data_path()
-    return load_data(INFERENCE_RESULTS_FILENAME, inference_data_path)
-
-
-def upload_data(path, contents, filenames, extracted_filename=TRAINING_DATA_FILENAME):
     path.mkdir(exist_ok=True, parents=True)
     for content, filename in zip(contents, filenames):
         content_type, _, content_string = content.partition(',')
         decoded = base64.b64decode(content_string)
         with open(path/filename, 'wb') as f:
             f.write(decoded)
-    data = extract_data(path, extracted_filename)
-    return data
+    data, extracted_filepaths = extract_data(path, extracted_filename, skip_paths=skip_paths)
+    return data, extracted_filepaths
 
 
-def upload_training_data(contents, filenames):
+def upload_training_data(contents, filenames, skip_paths=None):
     training_data_path = get_training_data_path()
-    return upload_data(training_data_path, contents, filenames)
+    return upload_data(training_data_path, contents, filenames, skip_paths=skip_paths)
 
 
 def upload_inference_data(contents, filenames):
