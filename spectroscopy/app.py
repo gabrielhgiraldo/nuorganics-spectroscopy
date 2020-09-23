@@ -19,16 +19,15 @@ from spectroscopy.app_layout import (
     model_data_table,
 )
 from spectroscopy.app_utils import (
-    get_model_dir,
+    get_inference_data_path, get_model_dir,
     get_training_data_path,
     get_user_settings,
     inference_models,
     load_all_model_metrics,
-    # load_inference_data,
     save_user_settings,
     upload_inference_data,
 )
-from spectroscopy.data import SpectroscopyDataMonitor, TRAINING_DATA_FILENAME
+from spectroscopy.data import INFERENCE_RESULTS_FILENAME, SpectroscopyDataMonitor, EXTRACTED_DATA_FILENAME
 from spectroscopy.model import train_models
 ## NEWEST TODO
 # TODO: on start-up create folder structure
@@ -50,7 +49,12 @@ get_training_data_path().mkdir(parents=True, exist_ok=True)
 # initialize monitor for training data
 training_data_monitor = SpectroscopyDataMonitor(
     watch_directory=get_training_data_path(),
-    extracted_data_filename=TRAINING_DATA_FILENAME
+    extracted_data_filename=EXTRACTED_DATA_FILENAME
+)
+
+inference_data_monitor = SpectroscopyDataMonitor(
+    watch_directory=get_inference_data_path(),
+    extracted_data_filename=INFERENCE_RESULTS_FILENAME
 )
 
 
@@ -155,25 +159,26 @@ def on_train_models(n_clicks, training_targets):
     model_metrics = load_all_model_metrics()
     return model_performance_section(model_metrics)
 
-# @app.callback(
-#     output=Output('inference-table-wrapper', 'children'),
-#     inputs=[Input('run-inference', 'n_clicks'),
-#             Input('upload-inference','contents')],
-#     state=[State('upload-inference', 'filename'),
-#            State('inference-target-selection','value')]
-# )
-# def on_inference(inference_clicks, contents, filenames, inference_targets):
-#     if contents and filenames:
-#         data = upload_inference_data(contents, filenames)
-#     elif inference_clicks and inference_targets:
-#         data = inference_models(inference_targets)
-#     else:
-#         try:
-#             data = load_inference_data()
-#         except FileNotFoundError:
-#             raise PreventUpdate
+@app.callback(
+    output=Output('inference-table-wrapper', 'children'),
+    inputs=[Input('run-inference', 'n_clicks'),
+            Input('upload-inference','contents')],
+    state=[State('upload-inference', 'filename'),
+           State('inference-target-selection','value')]
+)
+def on_inference(inference_clicks, contents, filenames, inference_targets):
+    if contents and filenames:
+        data, _ = upload_inference_data(contents, filenames)
+    elif inference_clicks and inference_targets:
+        data = inference_models(inference_targets, inference_data_monitor.extracted_data)
+        inference_data_monitor.cache_data()
+    else:
+        try:
+            data, has_change = inference_data_monitor.sync_data()
+        except FileNotFoundError:
+            raise PreventUpdate
 
-#     return model_data_table(data, 'inference')
+    return model_data_table(data, 'inference')
 
 
 # TODO: figure out how to select certain rows for export
@@ -193,7 +198,7 @@ def on_train_models(n_clicks, training_targets):
 #     if tag == 'training':
 #         # TODO: trigger confirmation?
 #         training_data_path = get_training_data_path()
-#         # pd.DataFrame(data).to_csv(training_data_path/TRAINING_DATA_FILENAME, index=False)
+#         # pd.DataFrame(data).to_csv(training_data_path/EXTRACTED_DATA_FILENAME, index=False)
 #     elif tag == 'inference':
 #         inference_data_path = get_inference_data_path()
 #         # pd.DataFrame(data).to_csv(inference_data_path/INFERENCE_RESULTS_FILENAME, index=False)

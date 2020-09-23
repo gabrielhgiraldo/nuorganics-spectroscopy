@@ -11,7 +11,7 @@ from spectroscopy.model import load_model, load_model_metrics, transform_data
 from spectroscopy.data import (
     AVAILABLE_TARGETS,
     INFERENCE_RESULTS_FILENAME,
-    TRAINING_DATA_FILENAME,
+    # EXTRACTED_DATA_FILENAME,
     extract_data,
 )
 INTERNAL_CONFIG_FILEPATH = Path(__file__).parent / 'config.ini'
@@ -84,7 +84,7 @@ def get_inference_data_path():
 # # TODO: use new SpectroscopyDataEventHandler
 # def load_training_data(skip_paths=None):
 #     training_data_path = get_training_data_path()
-#     return load_data(TRAINING_DATA_FILENAME, training_data_path, cache=True, skip_paths=skip_paths)
+#     return load_data(EXTRACTED_DATA_FILENAME, training_data_path, cache=True, skip_paths=skip_paths)
 
 # # TODO: use new SpectroscopyDataEventHandler
 # def load_inference_data():
@@ -92,7 +92,7 @@ def get_inference_data_path():
 #     return load_data(INFERENCE_RESULTS_FILENAME, inference_data_path)
 
 
-def upload_data(path, contents, filenames, extracted_filename=TRAINING_DATA_FILENAME,
+def upload_data(path, contents, filenames, extracted_filename,
                 skip_paths=None):
 
     path.mkdir(exist_ok=True, parents=True)
@@ -101,7 +101,7 @@ def upload_data(path, contents, filenames, extracted_filename=TRAINING_DATA_FILE
         decoded = base64.b64decode(content_string)
         with open(path/filename, 'wb') as f:
             f.write(decoded)
-    data, extracted_filepaths = extract_data(path, extracted_filename, skip_paths=skip_paths)
+    data, extracted_filepaths = extract_data(path, extracted_filename, skip_paths=skip_paths, cache=False)
     return data, extracted_filepaths
 
 
@@ -150,18 +150,14 @@ def load_models(tags):
     return models
 
 # TODO: speed up inference of models with concurrency
-def inference_models(model_tags, data=None, results_path=None):
-    if results_path is None:
-        results_path = get_inference_data_path()
-    if data is None:
-        data = load_inference_data()
-
+def inference_models(model_tags, data):
+    # if data is None:
+    #     data = load_inference_data()
     models = load_models(model_tags)
     X = transform_data(data)
     for model_tag, model in models.items():
         logger.info(f'running inference with model {model_tag}')
         data[f'predicted_{model_tag}'] = model.predict(X)
         data[f'predicted_on'] = pd.to_datetime(datetime.now())
-    data.to_csv(results_path/INFERENCE_RESULTS_FILENAME, index=False)
     return data
 

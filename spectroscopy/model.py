@@ -20,7 +20,7 @@ from sklearn.preprocessing import OneHotEncoder
 
 
 from spectroscopy.data import (
-    TRAINING_DATA_FILENAME,
+    EXTRACTED_REFERENCE_FILENAME,
     load_cached_extracted_data,
     AVAILABLE_TARGETS
 )
@@ -128,7 +128,7 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
     model_dir = Path(model_dir)
     if data is None:
         # TODO: exctract data if there's no cached
-        data = load_cached_extracted_data(TRAINING_DATA_FILENAME, training_data_path)
+        data = load_cached_extracted_data(EXTRACTED_REFERENCE_FILENAME, training_data_path)
     # TODO: make this an sklearn transformer
     X = transform_data(data)
     # TODO: have feature extraction occur in model pipeline

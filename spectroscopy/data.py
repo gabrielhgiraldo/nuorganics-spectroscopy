@@ -27,9 +27,11 @@ AVAILABLE_TARGETS = [
 
 SCAN_FILE_DATETIME_FORMAT = '%m-%d-%y'
 DATA_DIR = Path(__file__).parents[1] / 'data'
-TRAINING_DATA_FILENAME = 'training_data.pkl'
-INFERENCE_RESULTS_FILENAME = 'inference_results.csv'
-EXTRACTED_REFERENCE_FILENAME = '.extracted_files.pkl'
+INFERENCE_RESULTS_FILENAME = 'inference_results.pkl'
+EXTRACTED_DATA_FILENAME='extracted_files.pkl'
+EXTRACTED_REFERENCE_FILENAME = '.extracted_filepaths.pkl' # file for caching extracted filepaths
+
+MAX_WORKERS = 3
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -142,7 +144,7 @@ def parse_trm_files(directory_path=None, zero_negatives=True, skip_paths=None) -
             if len(trm_filepaths) <= 0:
                 logger.warning('all .TRM files were in skip_paths. no new .TRM files parsed.')
                 return pd.DataFrame(), []
-        with ThreadPoolExecutor(max_workers=10) as pool:
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
             dfs = pool.map(parse_spect_file, trm_filepaths)
         df_trms = pd.concat(dfs)
         if zero_negatives:
@@ -154,7 +156,7 @@ def parse_trm_files(directory_path=None, zero_negatives=True, skip_paths=None) -
         raise FileNotFoundError(f'no .TRM files found at {directory_path}. {e}')
 
 
-def extract_data(data_path=DATA_DIR, extracted_filename=TRAINING_DATA_FILENAME,
+def extract_data(data_path=DATA_DIR, extracted_filename=EXTRACTED_DATA_FILENAME,
                 cache=True, skip_paths=None):
     # handle transmittance
     df_trms, trm_filepaths = parse_trm_files(data_path, skip_paths=skip_paths)
@@ -198,7 +200,7 @@ def parse_lab_reports(lab_report_directory=None, skip_paths=None) -> pd.DataFram
         if skip_paths is not None:
             logger.warn(f'skipping paths {skip_paths}')
             lr_filepaths = [filepath for filepath in lr_filepaths if filepath not in skip_paths]
-        with ThreadPoolExecutor(max_workers=10) as pool:
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
             reports = pool.map(parse_lab_report, lr_filepaths)
         return pd.concat(reports), lr_filepaths
     except ValueError:
@@ -263,7 +265,8 @@ class SpectroscopyDataMonitor:
 
         
     def cache_data(self):
-        self.extracted_data.to_csv(self.watch_directory/self.extracted_data_filename, index=False)
+        # self.extracted_data.to_csv(self.watch_directory/self.extracted_data_filename, index=False)
+        self.extracted_data.to_pickle(self.watch_directory/self.extracted_data_filename)
         with open(self.watch_directory/EXTRACTED_REFERENCE_FILENAME, 'wb') as f:
             pickle.dump(self.extracted_filepaths, f)
 
@@ -275,6 +278,7 @@ class SpectroscopyDataMonitor:
         has_changed = False
         current_filepaths = set(self.watch_directory.glob('*.TRM'))
         current_filepaths |= set(self.watch_directory.glob('Lab Report*.csv'))
+        # check if the folder is empty of relevant files
         if len(current_filepaths) == 0:
             if len(self.extracted_filepaths) > 0:
                 has_changed = True
@@ -282,9 +286,10 @@ class SpectroscopyDataMonitor:
             self.extracted_data = pd.DataFrame()
             self.syncing = False
             return self.extracted_data, has_changed
-        # remove any files that were deleted from cache
+        # remove any files that were deleted
         deleted_filepaths = self.extracted_filepaths - current_filepaths
         if len(deleted_filepaths) > 0:
+            logger.warn(f'files deleted: {deleted_filepaths}')
             deleted_sample_ids = []
             for deleted_filepath in deleted_filepaths:
                 sample_name, _, sample_date, run_number = _extract_spect_filename_info(deleted_filepath.name)
@@ -303,6 +308,8 @@ class SpectroscopyDataMonitor:
         # add in new files that haven't been extracted
         new_filepaths = current_filepaths - self.extracted_filepaths
         if len(new_filepaths) > 0:
+            # TODO: pretty print this or/and display in UI
+            logger.warn(f'new files added: {new_filepaths}')
             new_data, _ = extract_data(
                 data_path=self.watch_directory,
                 cache=False,
@@ -335,6 +342,8 @@ class SpectroscopyDataMonitor:
                 f'no cached extracted data found at {data_path}'
             )
             logger.warning(message)
+        else:
+            logger.info(f'cached data loaded')
         finally:
             self.sync_data()
             if len(self.extracted_data.index) > 0:
