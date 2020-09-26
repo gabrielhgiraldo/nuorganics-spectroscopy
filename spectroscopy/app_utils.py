@@ -6,12 +6,10 @@ from datetime import datetime
 
 import pandas as pd
 
-# from spectroscopy.data import load_data
 from spectroscopy.model import load_model, load_model_metrics, transform_data
 from spectroscopy.data import (
     AVAILABLE_TARGETS,
     INFERENCE_RESULTS_FILENAME,
-    # EXTRACTED_DATA_FILENAME,
     extract_data,
 )
 INTERNAL_CONFIG_FILEPATH = Path(__file__).parent / 'config.ini'

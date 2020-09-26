@@ -16,6 +16,7 @@ from spectroscopy.utils import get_wavelength_columns
 ENABLE_UI_UPLOAD = False
 METRIC_PRECISION = 2
 TABLE_NUMERIC_PRECISION = 2
+TRAINING_SYNC_INTERVAL = 10000
 TARGET_OPTIONS = [{'label':target, 'value':target} for target in AVAILABLE_TARGETS]
 logger = logging.getLogger(__name__)
 
@@ -159,12 +160,12 @@ def target_selector(tag):
 # TODO: create custom component for this
 # TODO: make these collapsible 
 # TODO: accept only certaint tpyes of files as variable
-def model_data_section(tag, enable_upload=True):
+def model_data_section(tag, sync_interval=60000, enable_upload=True):
     return html.Div(
         children=[
             html.H4(f'{tag} Data'),
             html.Small(f'data to be used for {tag} models'),
-            dcc.Interval(id=f'{tag}-data-sync-interval', interval=60000),
+            dcc.Interval(id=f'{tag}-data-sync-interval', interval=sync_interval),
             dcc.Upload(
                 id=f'upload-{tag}',
                 multiple=True,
@@ -258,7 +259,10 @@ def training_content():
     return html.Div(
         children=[
             dcc.Loading(id='training-feedback'),
-            model_data_section('training', enable_upload=False),
+            model_data_section('training',
+                enable_upload=False,
+                sync_interval=TRAINING_SYNC_INTERVAL
+            ),
             trained_models_section(),
         ],
     )

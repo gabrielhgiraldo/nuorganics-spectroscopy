@@ -32,7 +32,7 @@ from spectroscopy.model import train_models
 ## NEWEST TODO
 # TODO: on start-up create folder structure
 # TODO: browser freezing on load-up of data (paging?)
-
+# TODO: give ability to choose which columns to include in extraction from lab report, etc.
 # TODO: implement file change detection system 
 # TODO: keep track of loaded files
 # TODO: add ability to configure included model parameters
@@ -133,6 +133,7 @@ def on_training_data_sync(num_training_syncs):
     app.logger.info('syncing data')
     # check if any of the files have changed and extract any that haven't
     if training_data_monitor.syncing:
+        app.logger.warning(f'data still syncing, skipping sync')
         raise PreventUpdate
     if num_training_syncs:
         _, has_changed = training_data_monitor.sync_data()
