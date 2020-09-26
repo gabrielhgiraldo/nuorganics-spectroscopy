@@ -135,11 +135,12 @@ def parse_abs_files(directory_path=None) -> pd.DataFrame:
         raise FileNotFoundError(f'no .ABS files found at {directory_path}')
 
 def parse_trm_files(data_dir=None, zero_negatives=True, skip_paths=None, concurrent=True) -> pd.DataFrame:
+    # TODO: add test for checking whether parsing occurred correctly 
     if data_dir is None:
         data_dir = DATA_DIR
     data_dir = Path(data_dir)
     try:
-        trm_filepaths = data_dir.glob(TRM_PATTERN)
+        trm_filepaths = set(data_dir.glob(TRM_PATTERN))
         logger.info('parsing trm files')
         if skip_paths is not None:
             logger.warn(f'skipping paths {skip_paths}')
@@ -157,7 +158,7 @@ def parse_trm_files(data_dir=None, zero_negatives=True, skip_paths=None, concurr
             # set trms that are < 0 to 0
             num = df_trms._get_numeric_data()
             num[num < 0] = 0
-        return df_trms, trm_filepaths
+        return df_trms, set(trm_filepaths)
     except ValueError as e:
         raise FileNotFoundError(f'no .TRM files found at {data_dir}. {e}')
 
@@ -217,7 +218,7 @@ def parse_lab_reports(data_dir=None, skip_paths=None, concurrent=True) -> pd.Dat
         data_dir = DATA_DIR
     data_dir = Path(data_dir)
     try:
-        lr_filepaths = data_dir.glob(LAB_REPORT_PATTERN)
+        lr_filepaths = set(data_dir.glob(LAB_REPORT_PATTERN))
         logger.info('parsing lab report files')
         if skip_paths is not None:
             logger.warn(f'skipping paths {skip_paths}')
@@ -307,8 +308,7 @@ class SpectroscopyDataMonitor:
         # get set of files that are in current directory
         # TODO: include abs files?
         has_changed = False
-        current_filepaths = set(self.watch_directory.glob('TRM_PATTERN'))
-        current_filepaths |= set(self.watch_directory.glob(LAB_REPORT_PATTERN))
+        current_filepaths = get_relevant_filepaths(self.watch_directory)
         # check if the folder is empty of relevant files
         if len(current_filepaths) == 0:
             if len(self.extracted_filepaths) > 0:
