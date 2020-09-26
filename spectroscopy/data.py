@@ -24,7 +24,10 @@ AVAILABLE_TARGETS = [
     POTASSIUM,
     SULFUR
 ]
-
+TRM_PATTERN = "*.TRM"
+LAB_REPORT_PATTERN = "Lab Report*.csv"
+LAB_REPORT_COLUMNS = ['filename', *AVAILABLE_TARGETS]
+FILE_PATTERNS = {TRM_PATTERN, LAB_REPORT_PATTERN}
 SCAN_FILE_DATETIME_FORMAT = '%m-%d-%y'
 DATA_DIR = Path(__file__).parents[1] / 'data'
 INFERENCE_RESULTS_FILENAME = 'inference_results.pkl'
@@ -47,7 +50,7 @@ def get_sample_ids(df_samples):
 def get_sample_match_keys(df):
     return set(zip(df['sample_name'], df['sample_date']))
 
-
+# TODO: validate that this works correctly
 def check_data_sample_name_match(df_lr, df_samples):
     lr_ids = get_sample_match_keys(df_lr)
     samples_ids = get_sample_match_keys(df_samples)
@@ -131,12 +134,12 @@ def parse_abs_files(directory_path=None) -> pd.DataFrame:
     except ValueError:
         raise FileNotFoundError(f'no .ABS files found at {directory_path}')
 
-def parse_trm_files(directory_path=None, zero_negatives=True, skip_paths=None) -> pd.DataFrame:
-    if directory_path is None:
-        directory_path = DATA_DIR
-    directory_path = Path(directory_path)
+def parse_trm_files(data_dir=None, zero_negatives=True, skip_paths=None, concurrent=True) -> pd.DataFrame:
+    if data_dir is None:
+        data_dir = DATA_DIR
+    data_dir = Path(data_dir)
     try:
-        trm_filepaths = directory_path.glob("*.TRM")
+        trm_filepaths = data_dir.glob(TRM_PATTERN)
         logger.info('parsing trm files')
         if skip_paths is not None:
             logger.warn(f'skipping paths {skip_paths}')
@@ -144,8 +147,11 @@ def parse_trm_files(directory_path=None, zero_negatives=True, skip_paths=None) -
             if len(trm_filepaths) <= 0:
                 logger.warning('all .TRM files were in skip_paths. no new .TRM files parsed.')
                 return pd.DataFrame(), []
-        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
-            dfs = pool.map(parse_spect_file, trm_filepaths)
+        if concurrent:
+            with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+                dfs = pool.map(parse_spect_file, trm_filepaths)
+        else:
+            dfs = [parse_spect_file(filepath) for filepath in trm_filepaths]
         df_trms = pd.concat(dfs)
         if zero_negatives:
             # set trms that are < 0 to 0
@@ -153,16 +159,34 @@ def parse_trm_files(directory_path=None, zero_negatives=True, skip_paths=None) -
             num[num < 0] = 0
         return df_trms, trm_filepaths
     except ValueError as e:
-        raise FileNotFoundError(f'no .TRM files found at {directory_path}. {e}')
+        raise FileNotFoundError(f'no .TRM files found at {data_dir}. {e}')
+
+
+# def validate_extraction(df_trms, data_dir, extracted_filepaths, df_lr=None):
+#     trm_filepaths = get_relevant_filepaths(data_dir, [TRM_PATTERN])
+    # failed_to_extract_scans = 
+#     # TODO: make sure that all files are accounted for
+#     # TODO: make sure that all files were matched
+#     # TODO: add warnings if something went wrong
 
 
 def extract_data(data_path=DATA_DIR, extracted_filename=EXTRACTED_DATA_FILENAME,
-                cache=True, skip_paths=None):
+                cache=True, skip_paths=None, concurrent=True,
+                lab_report_columns=LAB_REPORT_COLUMNS):
+    # TODO: add warning/check if all files are extracted
     # handle transmittance
-    df_trms, trm_filepaths = parse_trm_files(data_path, skip_paths=skip_paths)
+    df_trms, trm_filepaths = parse_trm_files(
+        data_dir=data_path,
+        skip_paths=skip_paths,
+        concurrent=concurrent
+    )
     # try and see if there's groundtruth for these files
     try:
-        df_lr, lr_filepaths = parse_lab_reports(data_path, skip_paths=skip_paths)
+        df_lr, lr_filepaths = parse_lab_reports(
+            data_dir=data_path,
+            skip_paths=skip_paths,
+            concurrent=concurrent
+        )
     except FileNotFoundError as e:
         logger.warning(e)
         df = df_trms
@@ -170,10 +194,8 @@ def extract_data(data_path=DATA_DIR, extracted_filename=EXTRACTED_DATA_FILENAME,
     else:
         # if there's groundtruth, join the groundtruth to the dataset
         unmatched_names = check_data_sample_name_match(df_lr, df_trms)
-        # TODO: make this a warning
         if len(unmatched_names) > 0:
-            print(f'unable to match sample lab reports named {unmatched_names}')
-        lab_report_columns = ['filename', *AVAILABLE_TARGETS]
+            logger.warning(f'unable to match sample lab reports named {unmatched_names}')
         lr_to_join = df_lr.set_index(['sample_name', 'sample_date'])[lab_report_columns]
         df = df_trms.join(lr_to_join, on=['sample_name', 'sample_date'], lsuffix='_trm', rsuffix='_lr')\
                                             .reset_index(drop=True)
@@ -190,21 +212,24 @@ def extract_data(data_path=DATA_DIR, extracted_filename=EXTRACTED_DATA_FILENAME,
     return df, extracted_files
 
 
-def parse_lab_reports(lab_report_directory=None, skip_paths=None) -> pd.DataFrame:
-    if lab_report_directory is None:
-        lab_report_directory = DATA_DIR
-    lab_report_directory = Path(lab_report_directory)
+def parse_lab_reports(data_dir=None, skip_paths=None, concurrent=True) -> pd.DataFrame:
+    if data_dir is None:
+        data_dir = DATA_DIR
+    data_dir = Path(data_dir)
     try:
-        lr_filepaths = lab_report_directory.glob('Lab Report*.csv')
+        lr_filepaths = data_dir.glob(LAB_REPORT_PATTERN)
         logger.info('parsing lab report files')
         if skip_paths is not None:
             logger.warn(f'skipping paths {skip_paths}')
             lr_filepaths = [filepath for filepath in lr_filepaths if filepath not in skip_paths]
-        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
-            reports = pool.map(parse_lab_report, lr_filepaths)
+        if concurrent:
+            with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+                reports = pool.map(parse_lab_report, lr_filepaths)
+        else:
+            reports = [parse_lab_report(filepath) for filepath in lr_filepaths]
         return pd.concat(reports), lr_filepaths
     except ValueError:
-        raise FileNotFoundError(f'no lab report files found at {lab_report_directory}')
+        raise FileNotFoundError(f'no lab report files found at {data_dir}')
 
 
 def load_cached_extracted_data(data_dir, extracted_data_filename):
@@ -244,6 +269,12 @@ def load_cached_extracted_data(data_dir, extracted_data_filename):
 #     # TODO: implement other event type handlers?
 
 
+def get_relevant_filepaths(data_dir=DATA_DIR, file_patterns=FILE_PATTERNS):
+    file_paths = set()
+    for pattern in file_patterns:
+        file_paths |= set(data_dir.glob(pattern))
+    return file_paths
+
 class SpectroscopyDataMonitor:
     def __init__(self, watch_directory, extracted_data_filename):
         # extract initial files
@@ -276,8 +307,8 @@ class SpectroscopyDataMonitor:
         # get set of files that are in current directory
         # TODO: include abs files?
         has_changed = False
-        current_filepaths = set(self.watch_directory.glob('*.TRM'))
-        current_filepaths |= set(self.watch_directory.glob('Lab Report*.csv'))
+        current_filepaths = set(self.watch_directory.glob('TRM_PATTERN'))
+        current_filepaths |= set(self.watch_directory.glob(LAB_REPORT_PATTERN))
         # check if the folder is empty of relevant files
         if len(current_filepaths) == 0:
             if len(self.extracted_filepaths) > 0:
@@ -303,6 +334,7 @@ class SpectroscopyDataMonitor:
             ), index=self.extracted_data.index)
             mask = ~current_sample_ids.isin(deleted_sample_ids)
             self.extracted_data = self.extracted_data[mask]
+            self.extracted_filepaths -= deleted_filepaths
             has_changed = True
 
         # add in new files that haven't been extracted
