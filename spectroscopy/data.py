@@ -29,31 +29,30 @@ LAB_REPORT_PATTERN = "Lab Report*.csv"
 LAB_REPORT_COLUMNS = ['filename', *AVAILABLE_TARGETS]
 FILE_PATTERNS = {TRM_PATTERN, LAB_REPORT_PATTERN}
 SCAN_FILE_DATETIME_FORMAT = '%m-%d-%y'
+
 DATA_DIR = Path(__file__).parents[1] / 'data'
 INFERENCE_RESULTS_FILENAME = 'inference_results.pkl'
 EXTRACTED_DATA_FILENAME='extracted_files.pkl'
 EXTRACTED_REFERENCE_FILENAME = '.extracted_filepaths.pkl' # file for caching extracted filepaths
+
+SAMPLE_IDENTIFIER_COLUMNS = ['sample_name', 'sample_date']
 
 MAX_WORKERS = 3
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-def get_sample_ids(df_samples):
-    return set(zip(
-        df_samples['sample_name'],
-        df_samples['sample_date'],
-        df_samples['run_number']
-    ))
+def get_sample_ids(df_samples, identifier_columns=SAMPLE_IDENTIFIER_COLUMNS,
+                   include_run_number=True):
+    if include_run_number:
+        identifier_columns = [*identifier_columns, 'run_number']
+    return set(zip(*[df_samples[column] for column in identifier_columns]))
 
-
-def get_sample_match_keys(df):
-    return set(zip(df['sample_name'], df['sample_date']))
 
 # TODO: validate that this works correctly
-def check_data_sample_name_match(df_lr, df_samples):
-    lr_ids = get_sample_match_keys(df_lr)
-    samples_ids = get_sample_match_keys(df_samples)
+def get_unmatched_sample_ids(df_lr, df_samples):
+    lr_ids = get_sample_ids(df_lr, include_run_number=False)
+    samples_ids = get_sample_ids(df_samples, include_run_number=False)
     return samples_ids - lr_ids
 
 
@@ -134,6 +133,7 @@ def parse_abs_files(directory_path=None) -> pd.DataFrame:
     except ValueError:
         raise FileNotFoundError(f'no .ABS files found at {directory_path}')
 
+
 def parse_trm_files(data_dir=None, zero_negatives=True, skip_paths=None, concurrent=True) -> pd.DataFrame:
     # TODO: add test for checking whether parsing occurred correctly 
     if data_dir is None:
@@ -158,7 +158,9 @@ def parse_trm_files(data_dir=None, zero_negatives=True, skip_paths=None, concurr
             # set trms that are < 0 to 0
             num = df_trms._get_numeric_data()
             num[num < 0] = 0
-        return df_trms, set(trm_filepaths)
+        # make sure that all files were extracted
+        assert len(df_trms.index) == len(trm_filepaths)
+        return df_trms, trm_filepaths
     except ValueError as e:
         raise FileNotFoundError(f'no .TRM files found at {data_dir}. {e}')
 
@@ -194,14 +196,18 @@ def extract_data(data_path=DATA_DIR, extracted_filename=EXTRACTED_DATA_FILENAME,
         extracted_files = trm_filepaths
     else:
         # if there's groundtruth, join the groundtruth to the dataset
-        unmatched_names = check_data_sample_name_match(df_lr, df_trms)
-        if len(unmatched_names) > 0:
-            logger.warning(f'unable to match sample lab reports named {unmatched_names}')
-        lr_to_join = df_lr.set_index(['sample_name', 'sample_date'])[lab_report_columns]
-        df = df_trms.join(lr_to_join, on=['sample_name', 'sample_date'], lsuffix='_trm', rsuffix='_lr')\
+        unmatched_samples= get_unmatched_sample_ids(df_lr, df_trms)
+        if len(unmatched_samples) > 0:
+            message = f'unable to match samples {unmatched_samples}'
+            logger.warning(message)
+            # TODO: add custom exception for this
+            raise Exception(message)
+        lr_to_join = df_lr.set_index(SAMPLE_IDENTIFIER_COLUMNS)[lab_report_columns]
+        df = df_trms.join(lr_to_join, on=SAMPLE_IDENTIFIER_COLUMNS, lsuffix='_trm', rsuffix='_lr')\
                                             .reset_index(drop=True)
         # drop null Ammonia-N (unmatched)
         df = df.dropna(subset=AVAILABLE_TARGETS)
+        assert len(df.index) == len(trm_filepaths)
         extracted_files = set([*trm_filepaths, *lr_filepaths])
     if cache:
         # df.to_csv(data_path/extracted_filename, index=False)
@@ -228,7 +234,10 @@ def parse_lab_reports(data_dir=None, skip_paths=None, concurrent=True) -> pd.Dat
                 reports = pool.map(parse_lab_report, lr_filepaths)
         else:
             reports = [parse_lab_report(filepath) for filepath in lr_filepaths]
-        return pd.concat(reports), lr_filepaths
+
+        df_lr = pd.concat(reports)
+        assert len(df_lr.index) == len(lr_filepaths)
+        return df_lr, lr_filepaths
     except ValueError:
         raise FileNotFoundError(f'no lab report files found at {data_dir}')
 
