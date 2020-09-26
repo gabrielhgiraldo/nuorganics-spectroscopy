@@ -4,6 +4,7 @@
 *.ABS
 data/
 NIR DATA
+*.pkl
 
 # images
 *.png
