@@ -207,6 +207,12 @@ def extract_data(data_path=DATA_DIR, extracted_filename=EXTRACTED_DATA_FILENAME,
                                             .reset_index(drop=True)
         # drop null Ammonia-N (unmatched)
         df = df.dropna(subset=AVAILABLE_TARGETS)
+        if len(df.index) > len(trm_filepaths):
+            filename_counts = df['filename_trm'].value_counts()
+            duplicate_files = filename_counts[filename_counts > 1]
+            message = f'potential duplicate lab reports detected for samples {duplicate_files}'
+            logger.warning(message)
+        df = df.drop_duplicates()
         assert len(df.index) == len(trm_filepaths)
         extracted_files = set([*trm_filepaths, *lr_filepaths])
     if cache:
