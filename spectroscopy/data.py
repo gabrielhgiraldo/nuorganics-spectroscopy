@@ -6,8 +6,8 @@ from typing import Iterable
 
 import pandas as pd
 import pickle
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
+# from watchdog.observers import Observer
+# from watchdog.events import FileSystemEventHandler
 
 # TODO: write unittests for these functions
 
