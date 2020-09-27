@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 import logging
 from pathlib import Path
 import re
+from typing import Iterable
 
 import pandas as pd
 import pickle
@@ -42,6 +43,9 @@ MAX_WORKERS = 3
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+def is_spect_file(filepath):
+    return filepath.suffix in ['.TRM', '.ABS']
+
 def get_sample_ids(samples, identifier_columns=SAMPLE_IDENTIFIER_COLUMNS,
                    include_run_number=True, unique=True):
     if isinstance(samples, pd.DataFrame):
@@ -55,7 +59,11 @@ def get_sample_ids(samples, identifier_columns=SAMPLE_IDENTIFIER_COLUMNS,
     else:
         sample_ids = []
         for filepath in samples:
-            sample_name, _, sample_date, run_number = _extract_spect_filename_info(filepath.name)
+            if is_spect_file(filepath):
+                sample_name, _, sample_date, run_number = _extract_spect_filename_info(filepath.name)
+            else:
+                sample_name, sample_date = _extract_lab_report_filename_info(filepath.name)
+                run_number = None
             sample_id = [sample_name, sample_date]
             if include_run_number:
                 sample_id.append(run_number)
@@ -143,7 +151,7 @@ def parse_spect_file(path):
     return sample_df
 
 
-def parse_abs_files(directory_path=None) -> pd.DataFrame:
+def parse_abs_files(directory_path=None):
     if directory_path is None:
         directory_path = DATA_DIR
     directory_path = Path(directory_path)
@@ -153,8 +161,8 @@ def parse_abs_files(directory_path=None) -> pd.DataFrame:
         raise FileNotFoundError(f'no .ABS files found at {directory_path}')
 
 
-def parse_trm_files(data_dir=None, zero_negatives=True, skip_paths=None, concurrent=True) -> pd.DataFrame:
-    # TODO: add test for checking whether parsing occurred correctly 
+def parse_trm_files(data_dir=None, zero_negatives=True, skip_paths=None, concurrent=True):
+    # TODO: add test for checking whether parsing occurred correctly (file info was extracted correctly) 
     if data_dir is None:
         data_dir = DATA_DIR
     data_dir = Path(data_dir)
@@ -183,19 +191,30 @@ def parse_trm_files(data_dir=None, zero_negatives=True, skip_paths=None, concurr
     except ValueError as e:
         raise FileNotFoundError(f'no .TRM files found at {data_dir}. {e}')
 
-
-# def validate_extraction(df_trms, data_dir, extracted_filepaths, df_lr=None):
-#     trm_filepaths = get_relevant_filepaths(data_dir, [TRM_PATTERN])
-    # failed_to_extract_scans = 
-#     # TODO: make sure that all files are accounted for
-#     # TODO: make sure that all files were matched
-#     # TODO: add warnings if something went wrong
+# TODO: finish this
+def get_sample_matches(filepaths):
+    directory = list(filepaths)[0].parent
+    trm_filepaths = {filepath for filepath in filepaths if filepath.suffix == '.TRM'}
+    lr_filepaths = {filepath for filepath in filepaths if filepath.suffix == '.CSV'}
+    # get matching lab report for each trm path
+    available_lrs = get_relevant_filepaths(directory, LAB_REPORT_PATTERN)
+    # for each filepath, calculate the ids
+    trm_ids = get_sample_ids(trm_filepaths, include_run_number=False)
+    available_lr_ids = get_sample_ids(available_lrs, include_run_number=False)
+    lab_report_lookup = dict(zip(available_lr_ids, available_lrs))
+    lr_matches = {lab_report_lookup[trm_id] for trm_id in trm_ids}
+    # get matching trm for each lab report path
+    lr_ids = get_sample_ids(lr_filepaths, include_run_number=False)
+    available_trms = get_relevant_filepaths(directory, TRM_PATTERN )
+    available_trm_ids = get_sample_ids(available_trms)
+    trm_lookup = dict(zip(available_trm_ids, available_trms))
+    trm_matches = {trm_lookup[lr_id] for lr_id in lr_ids}
+    return trm_matches | lr_matches
 
 
 def extract_data(data_path=DATA_DIR, extracted_filename=EXTRACTED_DATA_FILENAME,
                 cache=True, skip_paths=None, concurrent=True,
                 lab_report_columns=LAB_REPORT_COLUMNS):
-    # TODO: add warning/check if all files are extracted
     # handle transmittance
     df_trms, trm_filepaths = parse_trm_files(
         data_dir=data_path,
@@ -215,7 +234,7 @@ def extract_data(data_path=DATA_DIR, extracted_filename=EXTRACTED_DATA_FILENAME,
         extracted_files = set(trm_filepaths)
     else:
         # if there's groundtruth, join the groundtruth to the dataset
-        unmatched_samples= get_unmatched_sample_ids(df_lr, df_trms)
+        unmatched_samples = get_unmatched_sample_ids(df_lr, df_trms)
         if len(unmatched_samples) > 0:
             message = f'unable to match samples {unmatched_samples}'
             logger.warning(message)
@@ -230,6 +249,7 @@ def extract_data(data_path=DATA_DIR, extracted_filename=EXTRACTED_DATA_FILENAME,
             message = f'potential duplicate lab reports detected for samples:\n {duplicate_files}'
             logger.warning(message)
             df = df.drop_duplicates(subset=['filename_trm'])
+        # ensure that matching occurred correctly
         assert len(df.index) == len(trm_filepaths)
         extracted_files = set([*trm_filepaths, *lr_filepaths])
     if cache:
@@ -303,13 +323,15 @@ def load_cached_extracted_data(data_dir, extracted_data_filename):
 
 
 def get_relevant_filepaths(data_dir=DATA_DIR, file_patterns=FILE_PATTERNS):
+    if not isinstance(file_patterns, Iterable) or isinstance(file_patterns, str):
+        file_patterns = [file_patterns]
     file_paths = set()
     for pattern in file_patterns:
         file_paths |= set(data_dir.glob(pattern))
     return file_paths
 
 class SpectroscopyDataMonitor:
-    def __init__(self, watch_directory, extracted_data_filename):
+    def __init__(self, watch_directory, extracted_data_filename=EXTRACTED_DATA_FILENAME):
         # extract initial files
         self.syncing = False
         self.watch_directory = watch_directory
@@ -335,7 +357,7 @@ class SpectroscopyDataMonitor:
             pickle.dump(self.extracted_filepaths, f)
 
 
-    def sync_data(self):
+    def sync_data(self, cache=True):
         self.syncing = True
         # get set of files that are in current directory
         # TODO: include abs files?
@@ -365,15 +387,19 @@ class SpectroscopyDataMonitor:
         if len(new_filepaths) > 0:
             # TODO: pretty print this or/and display in UI
             logger.warn(f'new files added: {new_filepaths}')
+            # matched_filepaths = get_sample_matches(new_filepaths)
+            # extract the data for matched files and added files
+            # skip_paths = self.extracted_filepaths - (matched_filepaths | new_filepaths)
+            skip_paths = self.extracted_filepaths
             new_data, new_extracted_files = extract_data(
                 data_path=self.watch_directory,
                 cache=False,
-                skip_paths=self.extracted_filepaths
+                skip_paths=skip_paths
             )
             self.extracted_filepaths |= new_extracted_files
             self.extracted_data = pd.concat([self.extracted_data, new_data])
             has_changed = True
-        if has_changed:
+        if has_changed and cache:
             self.cache_data()
         self.syncing = False
         return self.extracted_data, has_changed
