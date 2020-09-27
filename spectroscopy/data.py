@@ -163,10 +163,10 @@ def parse_trm_files(data_dir=None, zero_negatives=True, skip_paths=None, concurr
         logger.info('parsing trm files')
         if skip_paths is not None:
             logger.warn(f'skipping paths {skip_paths}')
-            trm_filepaths = [filepath for filepath in trm_filepaths if filepath not in skip_paths]
+            trm_filepaths = {filepath for filepath in trm_filepaths if filepath not in skip_paths}
             if len(trm_filepaths) <= 0:
                 logger.warning('all .TRM files were in skip_paths. no new .TRM files parsed.')
-                return pd.DataFrame(), []
+                return pd.DataFrame(), set()
         if concurrent:
             with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
                 dfs = pool.map(parse_spect_file, trm_filepaths)
@@ -179,7 +179,7 @@ def parse_trm_files(data_dir=None, zero_negatives=True, skip_paths=None, concurr
             num[num < 0] = 0
         # make sure that all files were extracted
         assert len(df_trms.index) == len(trm_filepaths)
-        return df_trms, trm_filepaths
+        return df_trms, set(trm_filepaths)
     except ValueError as e:
         raise FileNotFoundError(f'no .TRM files found at {data_dir}. {e}')
 
@@ -212,7 +212,7 @@ def extract_data(data_path=DATA_DIR, extracted_filename=EXTRACTED_DATA_FILENAME,
     except FileNotFoundError as e:
         logger.warning(e)
         df = df_trms
-        extracted_files = trm_filepaths
+        extracted_files = set(trm_filepaths)
     else:
         # if there's groundtruth, join the groundtruth to the dataset
         unmatched_samples= get_unmatched_sample_ids(df_lr, df_trms)
@@ -251,7 +251,7 @@ def parse_lab_reports(data_dir=None, skip_paths=None, concurrent=True) -> pd.Dat
         logger.info('parsing lab report files')
         if skip_paths is not None:
             logger.warn(f'skipping paths {skip_paths}')
-            lr_filepaths = [filepath for filepath in lr_filepaths if filepath not in skip_paths]
+            lr_filepaths = set([filepath for filepath in lr_filepaths if filepath not in skip_paths])
         if concurrent:
             with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
                 reports = pool.map(parse_lab_report, lr_filepaths)
@@ -275,7 +275,7 @@ def load_cached_extracted_data(data_dir, extracted_data_filename):
     with open(extracted_ref_path, 'rb') as f:
         extracted_filepaths = pickle.load(f)
 
-    return extracted_data, extracted_filepaths
+    return extracted_data, set(extracted_filepaths)
 
 
 # class SpectroscopyDataEventHandler(FileSystemEventHandler):
@@ -391,7 +391,7 @@ class SpectroscopyDataMonitor:
             if skip_paths is None:
                 skip_paths = self.extracted_filepaths
             else:
-                skip_paths = [*skip_paths, *self.extracted_filepaths]
+                skip_paths = {*skip_paths, *self.extracted_filepaths}
         except FileNotFoundError:
             message = (
                 f'no cached extracted data found at {data_path}'
