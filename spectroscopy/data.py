@@ -42,11 +42,30 @@ MAX_WORKERS = 3
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-def get_sample_ids(df_samples, identifier_columns=SAMPLE_IDENTIFIER_COLUMNS,
-                   include_run_number=True):
-    if include_run_number:
-        identifier_columns = [*identifier_columns, 'run_number']
-    return set(zip(*[df_samples[column] for column in identifier_columns]))
+def get_sample_ids(samples, identifier_columns=SAMPLE_IDENTIFIER_COLUMNS,
+                   include_run_number=True, unique=True):
+    if isinstance(samples, pd.DataFrame):
+        if include_run_number:
+            identifier_columns = [*identifier_columns, 'run_number']
+        sample_ids = zip(*[samples[column] for column in identifier_columns])
+        if unique:
+            return set(sample_ids)
+        else:
+            return pd.Series(sample_ids, index=samples.index)
+    else:
+        sample_ids = []
+        for filepath in samples:
+            sample_name, _, sample_date, run_number = _extract_spect_filename_info(filepath.name)
+            sample_id = [sample_name, sample_date]
+            if include_run_number:
+                sample_id.append(run_number)
+            sample_id = tuple(sample_id)
+            sample_ids.append(sample_id)
+        if unique:
+            return set(sample_ids)
+        else:
+            return sample_ids
+
 
 
 # TODO: validate that this works correctly
@@ -208,7 +227,7 @@ def extract_data(data_path=DATA_DIR, extracted_filename=EXTRACTED_DATA_FILENAME,
         if len(df.index) > len(trm_filepaths):
             filename_counts = df['filename_trm'].value_counts()
             duplicate_files = filename_counts[filename_counts > 1]
-            message = f'potential duplicate lab reports detected for samples {duplicate_files}'
+            message = f'potential duplicate lab reports detected for samples:\n {duplicate_files}'
             logger.warning(message)
             df = df.drop_duplicates(subset=['filename_trm'])
         assert len(df.index) == len(trm_filepaths)
@@ -333,20 +352,11 @@ class SpectroscopyDataMonitor:
         # remove any files that were deleted
         deleted_filepaths = self.extracted_filepaths - current_filepaths
         if len(deleted_filepaths) > 0:
-            logger.warn(f'files deleted: {deleted_filepaths}')
-            deleted_sample_ids = []
-            for deleted_filepath in deleted_filepaths:
-                sample_name, _, sample_date, run_number = _extract_spect_filename_info(deleted_filepath.name)
-                # get id associated with sample
-                sample_id = (sample_name, sample_date, run_number)
-                deleted_sample_ids.append(sample_id)
-                # get row in sample associated with that ids
-            current_sample_ids = pd.Series(zip(
-                self.extracted_data['sample_name'],
-                self.extracted_data['sample_date']
-            ), index=self.extracted_data.index)
-            mask = ~current_sample_ids.isin(deleted_sample_ids)
-            self.extracted_data = self.extracted_data[mask]
+            deleted_filenames = [fp.name for fp in deleted_filepaths]
+            logger.warn(f'files deleted: {deleted_filenames}')
+            mask = (self.extracted_data['filename_lr'].isin(deleted_filenames))\
+                | (self.extracted_data['filename_trm'].isin(deleted_filenames))
+            self.extracted_data = self.extracted_data[~mask]
             self.extracted_filepaths -= deleted_filepaths
             has_changed = True
 
@@ -355,12 +365,12 @@ class SpectroscopyDataMonitor:
         if len(new_filepaths) > 0:
             # TODO: pretty print this or/and display in UI
             logger.warn(f'new files added: {new_filepaths}')
-            new_data, _ = extract_data(
+            new_data, new_extracted_files = extract_data(
                 data_path=self.watch_directory,
                 cache=False,
                 skip_paths=self.extracted_filepaths
             )
-            self.extracted_filepaths |= new_filepaths
+            self.extracted_filepaths |= new_extracted_files
             self.extracted_data = pd.concat([self.extracted_data, new_data])
             has_changed = True
         if has_changed:

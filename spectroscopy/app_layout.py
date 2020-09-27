@@ -16,7 +16,7 @@ from spectroscopy.utils import get_wavelength_columns
 ENABLE_UI_UPLOAD = False
 METRIC_PRECISION = 2
 TABLE_NUMERIC_PRECISION = 2
-TRAINING_SYNC_INTERVAL = 10000
+TRAINING_SYNC_INTERVAL = 20000
 TARGET_OPTIONS = [{'label':target, 'value':target} for target in AVAILABLE_TARGETS]
 logger = logging.getLogger(__name__)
 
