@@ -90,8 +90,7 @@ def get_sample_ids(samples, identifier_columns=SAMPLE_IDENTIFIER_COLUMNS,
             return sample_ids
 
 
-
-# TODO: validate that this works correctly
+# TODO: add test for this
 def get_unmatched_sample_ids(df_lr, df_samples):
     lr_ids = get_sample_ids(df_lr, include_run_number=False)
     samples_ids = get_sample_ids(df_samples, include_run_number=False)
@@ -206,7 +205,17 @@ def parse_trm_files(data_dir=None, zero_negatives=True, skip_paths=None, concurr
     except ValueError as e:
         raise FileNotFoundError(f'no .TRM files found at {data_dir}. {e}')
 
+
 def get_sample_matches(filepaths):
+    """Get matching lab report filepaths for trm samples and matching trm samples for 
+    lab report filepaths.
+
+    Args:
+        filepaths (set[pathlib.Path]): set of filepaths to find matches for
+
+    Returns:
+        set[pathlib.Path]: set of matched filepaths for provided filepaths.
+    """
     directory = list(filepaths)[0].parent
     # get matching lab reports for each trm path
     trm_filepaths = {filepath for filepath in filepaths if is_spect_file(filepath)}
@@ -223,10 +232,6 @@ def get_sample_matches(filepaths):
     lr_ids = get_sample_ids(lr_filepaths, include_run_number=False, unique=False)
     available_trms = get_relevant_filepaths(directory, TRM_PATTERN)
     available_trm_ids = get_sample_ids(available_trms, include_run_number=False, unique=False)
-    # trm_lookup = dict()
-    # TODO: create one-to-many lookup for lab-report to trm files
-    # TODO: ensure that trm_ids and trm_filepaths
-    # are being zipped together correctly
     trm_lookup = defaultdict(list)
     for trm_id, trm_filepath in zip(available_trm_ids, available_trms):
         trm_lookup[trm_id].append(trm_filepath)
