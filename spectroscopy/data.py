@@ -39,7 +39,7 @@ EXTRACTED_REFERENCE_FILENAME = '.extracted_filepaths.pkl' # file for caching ext
 
 SAMPLE_IDENTIFIER_COLUMNS = ['sample_name', 'sample_date']
 
-MAX_WORKERS = 3
+DEFAULT_MAX_WORKERS = 1
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -175,7 +175,8 @@ def parse_abs_files(directory_path=None):
         raise FileNotFoundError(f'no .ABS files found at {directory_path}')
 
 
-def parse_trm_files(data_dir=None, zero_negatives=True, skip_paths=None, concurrent=True):
+def parse_trm_files(data_dir=None, zero_negatives=True, skip_paths=None, concurrent=True,
+                    max_workers=DEFAULT_MAX_WORKERS):
     # TODO: add test for checking whether parsing occurred correctly (file info was extracted correctly) 
     if data_dir is None:
         data_dir = DATA_DIR
@@ -190,7 +191,7 @@ def parse_trm_files(data_dir=None, zero_negatives=True, skip_paths=None, concurr
                 logger.warning('all .TRM files were in skip_paths. no new .TRM files parsed.')
                 return pd.DataFrame(), set()
         if concurrent:
-            with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+            with ThreadPoolExecutor(max_workers=max_workers) as pool:
                 dfs = pool.map(parse_spect_file, trm_filepaths)
         else:
             dfs = [parse_spect_file(filepath) for filepath in trm_filepaths]
@@ -293,7 +294,8 @@ def extract_data(data_path=DATA_DIR, extracted_filename=EXTRACTED_DATA_FILENAME,
     return df, extracted_files
 
 
-def parse_lab_reports(data_dir=None, skip_paths=None, concurrent=True) -> pd.DataFrame:
+def parse_lab_reports(data_dir=None, skip_paths=None, concurrent=True,
+                      max_workers=DEFAULT_MAX_WORKERS) -> pd.DataFrame:
     if data_dir is None:
         data_dir = DATA_DIR
     data_dir = Path(data_dir)
@@ -304,7 +306,7 @@ def parse_lab_reports(data_dir=None, skip_paths=None, concurrent=True) -> pd.Dat
             logger.warn(f'skipping paths {skip_paths}')
             lr_filepaths = set([filepath for filepath in lr_filepaths if filepath not in skip_paths])
         if concurrent:
-            with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
+            with ThreadPoolExecutor(max_workers=max_workers) as pool:
                 reports = pool.map(parse_lab_report, lr_filepaths)
         else:
             reports = [parse_lab_report(filepath) for filepath in lr_filepaths]
