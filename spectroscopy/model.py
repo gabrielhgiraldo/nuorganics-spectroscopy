@@ -132,7 +132,6 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
     # TODO: make this an sklearn transformer
     X = transform_data(data)
     # TODO: have feature extraction occur in model pipeline
-    # TODO: switch printing with logging
     # TODO: add ability to include different experiments in one training run
     all_scores = {}
     models = {}
@@ -140,7 +139,11 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
         logger.info(f'Fitting {target} model')
         target_model_dir = model_dir / target
         y = data[target]
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=10)
+        # drop the samples that are missing this target
+        mask = y.isna()
+        y_temp = y[~mask]
+        X_temp = X[~mask]
+        X_train, X_test, y_train, y_test = train_test_split(X_temp, y_temp, test_size=0.3, random_state=10)
         logger.info(f'total samples:{len(data)} training on:{len(X_train)} testing on {len(X_test)}')
         # TODO: allow for different architectures for each model
         model = define_model()

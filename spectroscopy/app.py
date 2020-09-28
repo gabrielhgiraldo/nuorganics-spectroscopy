@@ -34,7 +34,6 @@ from spectroscopy.model import train_models
 # TODO: make script to correct file namings
 # TODO: add ability to view scans (select scans, view all scans on SAME GRAPH)
 # TODO: give ability to choose which columns to include in extraction from lab report, etc.
-# TODO: keep track of loaded files
 # TODO: add ability to configure included model parameters
 # TODO: add ability to save retrained model(s)
 # TODO: add ability to view and download prediction results
@@ -52,6 +51,7 @@ training_data_monitor = SpectroscopyDataMonitor(
     extracted_data_filename=EXTRACTED_DATA_FILENAME
 )
 
+# initialize monitor for inference data
 inference_data_monitor = SpectroscopyDataMonitor(
     watch_directory=get_inference_data_path(),
     extracted_data_filename=INFERENCE_RESULTS_FILENAME
