@@ -30,9 +30,9 @@ from spectroscopy.app_utils import (
 from spectroscopy.data import INFERENCE_RESULTS_FILENAME, SpectroscopyDataMonitor, EXTRACTED_DATA_FILENAME
 from spectroscopy.model import train_models
 ## NEWEST TODO
-# TODO: add ability to view scans (select scans, view all scans on SAME GRAPH)
-# TODO: make script to correct file namings
 # TODO: browser freezing on load-up of data (paging?)
+# TODO: make script to correct file namings
+# TODO: add ability to view scans (select scans, view all scans on SAME GRAPH)
 # TODO: give ability to choose which columns to include in extraction from lab report, etc.
 # TODO: keep track of loaded files
 # TODO: add ability to configure included model parameters

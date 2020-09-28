@@ -34,7 +34,7 @@ SCAN_FILE_DATETIME_FORMAT = '%m-%d-%y'
 
 DATA_DIR = Path(__file__).parents[1] / 'data'
 INFERENCE_RESULTS_FILENAME = 'inference_results.pkl'
-EXTRACTED_DATA_FILENAME='extracted_files.pkl'
+EXTRACTED_DATA_FILENAME='.extracted_files.pkl'
 EXTRACTED_REFERENCE_FILENAME = '.extracted_filepaths.pkl' # file for caching extracted filepaths
 
 SAMPLE_IDENTIFIER_COLUMNS = ['sample_name', 'sample_date']
@@ -170,7 +170,7 @@ def parse_abs_files(directory_path=None):
         directory_path = DATA_DIR
     directory_path = Path(directory_path)
     try:
-        return pd.concat([parse_spect_file(filepath) for filepath in directory_path.glob("*.ABS")])
+        return pd.concat([parse_spect_file(filepath) for filepath in directory_path.glob("*.ABS")], ignore_index=True)
     except ValueError:
         raise FileNotFoundError(f'no .ABS files found at {directory_path}')
 
@@ -195,7 +195,7 @@ def parse_trm_files(data_dir=None, zero_negatives=True, skip_paths=None, concurr
                 dfs = pool.map(parse_spect_file, trm_filepaths)
         else:
             dfs = [parse_spect_file(filepath) for filepath in trm_filepaths]
-        df_trms = pd.concat(dfs)
+        df_trms = pd.concat(dfs, ignore_index=True)
         if zero_negatives:
             # set trms that are < 0 to 0
             num = df_trms._get_numeric_data()
@@ -226,7 +226,12 @@ def get_sample_matches(filepaths):
     trm_ids = get_sample_ids(trm_filepaths, include_run_number=False, unique=False)
     available_lr_ids = get_sample_ids(available_lrs, include_run_number=False, unique=False)
     lab_report_lookup = dict(zip(available_lr_ids, available_lrs))
-    lr_matches = {lab_report_lookup[trm_id] for trm_id in trm_ids}
+    lr_matches = set()
+    for trm_id in trm_ids:
+        try:
+            lr_matches.add(lab_report_lookup[trm_id])
+        except KeyError:
+            logger.warning(f'unable to find lab report for trm file {trm_id}')
     # get matching trm for each lab report path
     lr_filepaths = {filepath for filepath in filepaths if is_lab_report(filepath)}
     # for each provided lab report filepath calculate the ids for matching to trm
@@ -311,7 +316,7 @@ def parse_lab_reports(data_dir=None, skip_paths=None, concurrent=True,
         else:
             reports = [parse_lab_report(filepath) for filepath in lr_filepaths]
 
-        df_lr = pd.concat(reports)
+        df_lr = pd.concat(reports, ignore_index=True)
         assert len(df_lr.index) == len(lr_filepaths)
         return df_lr, lr_filepaths
     except ValueError:
@@ -402,8 +407,11 @@ class SpectroscopyDataMonitor:
         if len(deleted_filepaths) > 0:
             deleted_filenames = [fp.name for fp in deleted_filepaths]
             logger.warn(f'files deleted: {deleted_filenames}')
-            mask = (self.extracted_data['filename_lr'].isin(deleted_filenames))\
-                | (self.extracted_data['filename_trm'].isin(deleted_filenames))
+            filename_keys = {'filename_lr', 'filename_trm', 'filename'}
+            mask = pd.Series([False]*len(self.extracted_data.index))
+            for key in filename_keys:
+                if key in self.extracted_data:
+                    mask |= self.extracted_data[key].isin(deleted_filenames)        
             self.extracted_data = self.extracted_data[~mask]
             self.extracted_filepaths -= deleted_filepaths
             has_changed = True
@@ -423,7 +431,7 @@ class SpectroscopyDataMonitor:
                 skip_paths=skip_paths
             )
             self.extracted_filepaths |= new_extracted_files
-            self.extracted_data = pd.concat([self.extracted_data, new_data])
+            self.extracted_data = pd.concat([self.extracted_data, new_data], ignore_index=True)
             has_changed = True
         if has_changed and cache:
             self.cache_data()
