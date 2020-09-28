@@ -2,10 +2,12 @@ from pathlib import Path
 import pytest
 
 from spectroscopy.data import (
-    LAB_REPORT_PATTERN, TRM_PATTERN,
     extract_data,
     get_relevant_filepaths,
-    SpectroscopyDataMonitor
+    get_sample_matches,
+    LAB_REPORT_PATTERN,
+    SpectroscopyDataMonitor,
+    TRM_PATTERN,
 )
 @pytest.fixture
 def test_data_dir():
@@ -21,8 +23,6 @@ def monitor(test_data_dir):
     )
 
 def test_extract_data(test_data_dir):
-    # TODO: test trm & csv files directory
-    # TODO: extract data
     extracted_data, extracted_filepaths = extract_data(test_data_dir, concurrent=True)
     # assert that all TRM scan files were extracted correctly
     trm_filepaths = get_relevant_filepaths(test_data_dir, TRM_PATTERN)
@@ -30,18 +30,30 @@ def test_extract_data(test_data_dir):
     all_filepaths = get_relevant_filepaths(test_data_dir)
     assert(extracted_filepaths == all_filepaths)
 
+
+def test_get_sample_matches(test_data_dir):
+    # get current filepaths in test directory
+    trm_filepaths = get_relevant_filepaths(test_data_dir, TRM_PATTERN) 
+    lr_filepaths = get_relevant_filepaths(test_data_dir, LAB_REPORT_PATTERN)
+    filepaths = trm_filepaths | lr_filepaths
+    matches = get_sample_matches(filepaths)
+    assert matches == trm_filepaths | lr_filepaths
+    
+
+
 # TODO: create test for deletion
 def test_sync_delete_add_data(monitor):
-    # pick filepaths to delete
     directory = monitor.watch_directory
     # create temporary directory
     temp_dir = directory / 'temp_dir'
     temp_dir.mkdir(exist_ok=True)
 
+    # get current trm and lab report files in the directory
     trm_filepaths = get_relevant_filepaths(monitor.watch_directory, TRM_PATTERN) 
     lr_filepaths = get_relevant_filepaths(monitor.watch_directory, LAB_REPORT_PATTERN)
+
+    # delete(move) some TRM files
     deleted_trms = set(list(trm_filepaths)[0:5])
-    # delete(move) TRM file
     previous_num_extracted = len(monitor.extracted_data.index)
     new_deleted_locations = set()
     for trm in deleted_trms:
@@ -66,5 +78,7 @@ def test_sync_delete_add_data(monitor):
     updated_num_extracted = len(monitor.extracted_data.index)
     assert updated_num_extracted == previous_num_extracted + len(deleted_trms)
     # check to make sure that the added trms have their lab reports matched
+    assert extracted_data['filename_lr'].isna().sum() == 0
+    assert 'filename' not in extracted_data
 
-# TODO: create test for addition
+    

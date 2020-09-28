@@ -1,3 +1,4 @@
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 import logging
 from pathlib import Path
@@ -46,8 +47,22 @@ logger.setLevel(logging.INFO)
 def is_spect_file(filepath):
     return filepath.suffix in ['.TRM', '.ABS']
 
+
+def is_lab_report(filepath):
+    return filepath.name.startswith('Lab Report') and filepath.suffix.lower() == '.csv'
+
+
+def get_relevant_filepaths(data_dir=DATA_DIR, file_patterns=FILE_PATTERNS):
+    if not isinstance(file_patterns, Iterable) or isinstance(file_patterns, str):
+        file_patterns = [file_patterns]
+    file_paths = set()
+    for pattern in file_patterns:
+        file_paths |= set(data_dir.glob(pattern))
+    return file_paths
+
+
 def get_sample_ids(samples, identifier_columns=SAMPLE_IDENTIFIER_COLUMNS,
-                   include_run_number=True, unique=True):
+                   include_run_number=True, unique=True, as_dict=False):
     if isinstance(samples, pd.DataFrame):
         if include_run_number:
             identifier_columns = [*identifier_columns, 'run_number']
@@ -191,24 +206,35 @@ def parse_trm_files(data_dir=None, zero_negatives=True, skip_paths=None, concurr
     except ValueError as e:
         raise FileNotFoundError(f'no .TRM files found at {data_dir}. {e}')
 
-# TODO: finish this
 def get_sample_matches(filepaths):
     directory = list(filepaths)[0].parent
-    trm_filepaths = {filepath for filepath in filepaths if filepath.suffix == '.TRM'}
-    lr_filepaths = {filepath for filepath in filepaths if filepath.suffix == '.CSV'}
-    # get matching lab report for each trm path
+    # get matching lab reports for each trm path
+    trm_filepaths = {filepath for filepath in filepaths if is_spect_file(filepath)}
+    # get all available lab reports to try to match the trms
     available_lrs = get_relevant_filepaths(directory, LAB_REPORT_PATTERN)
-    # for each filepath, calculate the ids
-    trm_ids = get_sample_ids(trm_filepaths, include_run_number=False)
-    available_lr_ids = get_sample_ids(available_lrs, include_run_number=False)
+    # for each provided trm filepath calculate the ids for matching to lab report
+    trm_ids = get_sample_ids(trm_filepaths, include_run_number=False, unique=False)
+    available_lr_ids = get_sample_ids(available_lrs, include_run_number=False, unique=False)
     lab_report_lookup = dict(zip(available_lr_ids, available_lrs))
     lr_matches = {lab_report_lookup[trm_id] for trm_id in trm_ids}
     # get matching trm for each lab report path
-    lr_ids = get_sample_ids(lr_filepaths, include_run_number=False)
-    available_trms = get_relevant_filepaths(directory, TRM_PATTERN )
-    available_trm_ids = get_sample_ids(available_trms)
-    trm_lookup = dict(zip(available_trm_ids, available_trms))
-    trm_matches = {trm_lookup[lr_id] for lr_id in lr_ids}
+    lr_filepaths = {filepath for filepath in filepaths if is_lab_report(filepath)}
+    # for each provided lab report filepath calculate the ids for matching to trm
+    lr_ids = get_sample_ids(lr_filepaths, include_run_number=False, unique=False)
+    available_trms = get_relevant_filepaths(directory, TRM_PATTERN)
+    available_trm_ids = get_sample_ids(available_trms, include_run_number=False, unique=False)
+    # trm_lookup = dict()
+    # TODO: create one-to-many lookup for lab-report to trm files
+    # TODO: ensure that trm_ids and trm_filepaths
+    # are being zipped together correctly
+    trm_lookup = defaultdict(list)
+    for trm_id, trm_filepath in zip(available_trm_ids, available_trms):
+        trm_lookup[trm_id].append(trm_filepath)
+
+    trm_matches = set()
+    for lr_id in lr_ids:
+        trm_matches.update(trm_lookup[lr_id])
+
     return trm_matches | lr_matches
 
 
@@ -322,13 +348,6 @@ def load_cached_extracted_data(data_dir, extracted_data_filename):
 #     # TODO: implement other event type handlers?
 
 
-def get_relevant_filepaths(data_dir=DATA_DIR, file_patterns=FILE_PATTERNS):
-    if not isinstance(file_patterns, Iterable) or isinstance(file_patterns, str):
-        file_patterns = [file_patterns]
-    file_paths = set()
-    for pattern in file_patterns:
-        file_paths |= set(data_dir.glob(pattern))
-    return file_paths
 
 class SpectroscopyDataMonitor:
     def __init__(self, watch_directory, extracted_data_filename=EXTRACTED_DATA_FILENAME):
@@ -387,10 +406,10 @@ class SpectroscopyDataMonitor:
         if len(new_filepaths) > 0:
             # TODO: pretty print this or/and display in UI
             logger.warn(f'new files added: {new_filepaths}')
-            # matched_filepaths = get_sample_matches(new_filepaths)
+            matched_filepaths = get_sample_matches(new_filepaths)
             # extract the data for matched files and added files
-            # skip_paths = self.extracted_filepaths - (matched_filepaths | new_filepaths)
-            skip_paths = self.extracted_filepaths
+            skip_paths = self.extracted_filepaths - (matched_filepaths | new_filepaths)
+            # skip_paths = self.extracted_filepaths
             new_data, new_extracted_files = extract_data(
                 data_path=self.watch_directory,
                 cache=False,
