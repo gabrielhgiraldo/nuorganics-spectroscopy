@@ -122,7 +122,8 @@ def transform_data(df):
 
 
 # TODO: generalize this for multiple targets
-def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_data_path=None):
+def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_data_path=None,
+                 evaluate=True):
     if model_dir is None:
         model_dir = MODEL_DIR
     model_dir = Path(model_dir)
@@ -148,19 +149,22 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
         # TODO: allow for different architectures for each model
         model = define_model()
         model.fit(X_train, y_train)
-        scores = score_model(model, X_train, y_train, X_test, y_test)
-        logger.info(pprint(scores))
-        logger.info('saving fit graph')
-        plot_fit(y_test, model.predict(X_test))
+        models[target] = model
         target_model_dir.mkdir(parents=True, exist_ok=True)
-        # TODO: use database or experiment handling framework for metrics storage
-        with open(target_model_dir/MODEL_METRICS_FILENAME, 'w') as f:
-            json.dump(scores, f)
         with open(target_model_dir / MODEL_FILENAME, 'wb') as f:
             pickle.dump(model, f)
-        all_scores[target] = scores
-        models[target] = model
-    return all_scores, models
+
+        if evaluate:
+            scores = score_model(model, X_train, y_train, X_test, y_test)
+            logger.info(pprint(scores))
+            logger.info('saving fit graph')
+            plot_fit(y_test, model.predict(X_test))
+            # TODO: use database or experiment handling framework for metrics storage
+            with open(target_model_dir/MODEL_METRICS_FILENAME, 'w') as f:
+                json.dump(scores, f)
+            all_scores[target] = scores
+            return all_scores, models
+        return models
 
 
 def load_model(model_target, model_dir=None):
@@ -193,3 +197,19 @@ def load_all_model_metrics(model_dir=None):
         else:
             metrics[target] = model_metrics
     return metrics
+
+
+def load_performance_artifacts(model_dir=None):
+    metrics = {}
+    for target in AVAILABLE_TARGETS:
+        try:
+            model_metrics = load_model_metrics(target, model_dir)
+        except FileNotFoundError as e:
+            logger.warning(e)
+        else:
+            metrics[target] = model_metrics
+    return metrics
+
+def load_all_performance_artifacts(model_dir=None):
+    metrics = load_all_model_metrics(model_dir)
+    graphs = load_all_model_graphs

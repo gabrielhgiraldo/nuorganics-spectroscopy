@@ -155,10 +155,15 @@ def on_train_models(n_clicks, training_targets):
     # TODO: train only on a subset of the data based on the table state
     if n_clicks:
         model_dir = get_model_dir()
-        train_models(training_targets, training_data_monitor.extracted_data, model_dir)
+        model_metrics, models = train_models(
+            targets=training_targets,
+            data=training_data_monitor.extracted_data,
+            model_dir=model_dir
+        )
         # predict on test data and add it to the testing data section for exportation
         # generate testing data section
-    model_metrics = load_all_model_metrics(model_dir=get_model_dir())
+    else:
+         model_metrics = load_all_model_metrics(model_dir=get_model_dir())
     return model_performance_section(model_metrics)
 
 @app.callback(
