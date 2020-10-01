@@ -120,20 +120,7 @@ def upload_inference_data(contents, filenames):
 
 def get_model_dir():
     return Path(get_user_settings()['paths']['project-path'])
-
-
-def load_all_model_metrics():
-    model_dir = get_model_dir()
-    metrics = {}
-    for target in AVAILABLE_TARGETS:
-        try:
-            model_metrics = load_model_metrics(target, model_dir)
-        except FileNotFoundError as e:
-            logger.warning(e)
-        else:
-            metrics[target] = model_metrics
-    return metrics
-
+    
 
 def load_models(tags):
     if tags is None:

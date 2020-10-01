@@ -173,9 +173,23 @@ def load_model(model_target, model_dir=None):
 
 
 def load_model_metrics(model_target, model_dir=None):
+    """Load performance metrics stored for particular target from corresponding folder"""
     if model_dir is None:
         model_dir = MODEL_DIR
     model_dir = Path(model_dir) / model_target
     with open(model_dir / MODEL_METRICS_FILENAME) as f:
         scores = json.load(f)
     return scores
+
+
+def load_all_model_metrics(model_dir=None):
+    """Load performance metrics for models of all available targets(N, Moisture, K, etc.)"""
+    metrics = {}
+    for target in AVAILABLE_TARGETS:
+        try:
+            model_metrics = load_model_metrics(target, model_dir)
+        except FileNotFoundError as e:
+            logger.warning(e)
+        else:
+            metrics[target] = model_metrics
+    return metrics

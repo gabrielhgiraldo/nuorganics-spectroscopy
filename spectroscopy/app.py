@@ -23,15 +23,16 @@ from spectroscopy.app_utils import (
     get_training_data_path,
     get_user_settings,
     inference_models,
-    load_all_model_metrics,
     save_user_settings,
     upload_inference_data,
 )
 from spectroscopy.data import INFERENCE_RESULTS_FILENAME, SpectroscopyDataMonitor, EXTRACTED_DATA_FILENAME
-from spectroscopy.model import train_models
+from spectroscopy.model import train_models, load_all_model_metrics
 ## NEWEST TODO
-# TODO: browser freezing on load-up of data (paging?)
 # TODO: make script to correct file namings
+# TODO: make performance section a table
+# TODO: add performance graphs
+# TODO: browser freezing on load-up of data (paging?)
 # TODO: add ability to view scans (select scans, view all scans on SAME GRAPH)
 # TODO: give ability to choose which columns to include in extraction from lab report, etc.
 # TODO: add ability to configure included model parameters
@@ -157,7 +158,7 @@ def on_train_models(n_clicks, training_targets):
         train_models(training_targets, training_data_monitor.extracted_data, model_dir)
         # predict on test data and add it to the testing data section for exportation
         # generate testing data section
-    model_metrics = load_all_model_metrics()
+    model_metrics = load_all_model_metrics(model_dir=get_model_dir())
     return model_performance_section(model_metrics)
 
 @app.callback(
