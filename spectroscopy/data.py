@@ -398,6 +398,7 @@ class SpectroscopyDataMonitor:
                 for column in self.column_order:
                     columns.remove(column)
                 columns = [*self.column_order, *columns]
+                
                 self.extracted_data = extracted_data.reindex(columns, axis=1).sort_values('index', axis=0)
 
     def cache_data(self):
