@@ -1,10 +1,10 @@
 import logging
-from operator import is_
 
 import dash_core_components as dcc
 import dash_html_components as html
 from dash_table import DataTable
 from dash_table.Format import Format, Scheme
+import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype as is_datetime, is_numeric_dtype
 
 
@@ -96,8 +96,12 @@ def model_data_table(data, tag):
                     scheme=Scheme.fixed
                 )
             })
-        elif is_datetime(data[column]):
-            data[column] = data[column].dt.strftime(SCAN_FILE_DATETIME_FORMAT)     
+        elif is_datetime(data[column]) or column.endswith('date'):
+            data[column] = pd.to_datetime(
+                arg=data[column],
+                format=SCAN_FILE_DATETIME_FORMAT,
+                errors='coerce'
+            ).dt.strftime(SCAN_FILE_DATETIME_FORMAT)
         columns.append(column_config)
     return html.Div([
         DataTable(
