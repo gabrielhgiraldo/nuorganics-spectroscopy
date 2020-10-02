@@ -34,6 +34,7 @@ from spectroscopy.model import train_models, load_all_model_metrics
 # TODO: add performance graphs
 # TODO: browser freezing on load-up of data (paging?)
 # TODO: add ability to view scans (select scans, view all scans on SAME GRAPH)
+# TODO: display model parameters
 # TODO: give ability to choose which columns to include in extraction from lab report, etc.
 # TODO: add ability to configure included model parameters
 # TODO: add ability to save retrained model(s)

@@ -163,8 +163,9 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
             with open(target_model_dir/MODEL_METRICS_FILENAME, 'w') as f:
                 json.dump(scores, f)
             all_scores[target] = scores
-            return all_scores, models
-        return models
+    if evaluate:
+        return all_scores, models
+    return models
 
 
 def load_model(model_target, model_dir=None):

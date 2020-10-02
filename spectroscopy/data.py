@@ -11,6 +11,7 @@ import pickle
 # from watchdog.events import FileSystemEventHandler
 
 # TODO: write unittests for these functions
+# TODO: use index of dataframe for sample_ids
 
 AMMONIA_N = 'Ammonia-N'
 TOTAL_N = 'N'
@@ -62,7 +63,7 @@ def get_relevant_filepaths(data_dir=DATA_DIR, file_patterns=FILE_PATTERNS):
 
 
 def get_sample_ids(samples, identifier_columns=SAMPLE_IDENTIFIER_COLUMNS,
-                   include_run_number=True, unique=True, as_dict=False):
+                   include_run_number=True, unique=True):
     if isinstance(samples, pd.DataFrame):
         if include_run_number:
             identifier_columns = [*identifier_columns, 'run_number']
@@ -360,15 +361,16 @@ def load_cached_extracted_data(data_dir, extracted_data_filename):
 #     # TODO: implement other event type handlers?
 
 
-
 class SpectroscopyDataMonitor:
-    def __init__(self, watch_directory, extracted_data_filename=EXTRACTED_DATA_FILENAME):
-        # extract initial files
+    def __init__(self, watch_directory, extracted_data_filename=EXTRACTED_DATA_FILENAME,
+                 column_order=None):
         self.syncing = False
         self.watch_directory = watch_directory
         self.extracted_data_filename = extracted_data_filename
         self.extracted_data = pd.DataFrame()
         self.extracted_filepaths = set()
+        if column_order is None:
+            self.column_order = SAMPLE_IDENTIFIER_COLUMNS
         self.load_data()
         # self.data_updated = True
         # set up file syncing
@@ -380,7 +382,18 @@ class SpectroscopyDataMonitor:
         #     recursive=False
         # )
 
-        
+    def _set_extracted_data(self, extracted_data):
+        # self.extracted_data = extracted_data.set_index(SAMPLE_IDENTIFIER_COLUMNS)
+        if self.column_order is None:
+            self.extracted_data = extracted_data
+        else:
+            # drop the columns listed in column order from the list of columns
+            columns = list(extracted_data.columns)
+            for column in self.column_order:
+                columns.remove(column)
+            columns = [*self.column_order, *columns]
+            self.extracted_data = extracted_data.reindex(columns, axis=1)
+
     def cache_data(self):
         # self.extracted_data.to_csv(self.watch_directory/self.extracted_data_filename, index=False)
         self.extracted_data.to_pickle(self.watch_directory/self.extracted_data_filename)
@@ -412,7 +425,7 @@ class SpectroscopyDataMonitor:
             for key in filename_keys:
                 if key in self.extracted_data:
                     mask |= self.extracted_data[key].isin(deleted_filenames)        
-            self.extracted_data = self.extracted_data[~mask]
+            self._set_extracted_data(self.extracted_data[~mask])
             self.extracted_filepaths -= deleted_filepaths
             has_changed = True
 
@@ -431,7 +444,7 @@ class SpectroscopyDataMonitor:
                 skip_paths=skip_paths
             )
             self.extracted_filepaths |= new_extracted_files
-            self.extracted_data = pd.concat([self.extracted_data, new_data], ignore_index=True)
+            self._set_extracted_data(pd.concat([self.extracted_data, new_data], ignore_index=True))
             has_changed = True
         if has_changed and cache:
             self.cache_data()
@@ -444,10 +457,11 @@ class SpectroscopyDataMonitor:
         try:
             # extract cached data
             logger.info('loading extracted data')
-            self.extracted_data, self.extracted_filepaths = load_cached_extracted_data(
+            extracted_data, self.extracted_filepaths = load_cached_extracted_data(
                 data_dir=self.watch_directory,
                 extracted_data_filename=self.extracted_data_filename
             )
+            self._set_extracted_data(extracted_data)
             if skip_paths is None:
                 skip_paths = self.extracted_filepaths
             else:
