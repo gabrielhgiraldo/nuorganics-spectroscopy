@@ -30,6 +30,7 @@ from spectroscopy.data import INFERENCE_RESULTS_FILENAME, SpectroscopyDataMonito
 from spectroscopy.model import train_models, load_all_model_metrics
 ## NEWEST TODO
 # TODO: make script to correct file namings
+# TODO: sync data on refresh
 # TODO: make performance section a table
 # TODO: add performance graphs
 # TODO: browser freezing on load-up of data (paging?)

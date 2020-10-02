@@ -63,8 +63,10 @@ def get_relevant_filepaths(data_dir=DATA_DIR, file_patterns=FILE_PATTERNS):
 
 # TODO: use index?
 def get_sample_ids(samples, identifier_columns=SAMPLE_IDENTIFIER_COLUMNS,
-                   include_run_number=True, unique=True):
+                   include_run_number=True, include_process_method=False, unique=True):
     if isinstance(samples, pd.DataFrame):
+        if include_process_method:
+            identifier_columns = [*identifier_columns, 'process_method']
         if include_run_number:
             identifier_columns = [*identifier_columns, 'run_number']
         sample_ids = zip(*[samples[column] for column in identifier_columns])
@@ -76,11 +78,14 @@ def get_sample_ids(samples, identifier_columns=SAMPLE_IDENTIFIER_COLUMNS,
         sample_ids = []
         for filepath in samples:
             if is_spect_file(filepath):
-                sample_name, _, sample_date, run_number = _extract_spect_filename_info(filepath.name)
+                sample_name, process_method, sample_date, run_number = _extract_spect_filename_info(filepath.name)
             else:
                 sample_name, sample_date = _extract_lab_report_filename_info(filepath.name)
                 run_number = None
+                process_method = None
             sample_id = [sample_name, sample_date]
+            if include_process_method:
+                sample_id.append(process_method)
             if include_run_number:
                 sample_id.append(run_number)
             sample_id = tuple(sample_id)
@@ -372,7 +377,7 @@ class SpectroscopyDataMonitor:
         self.extracted_data = pd.DataFrame()
         self.extracted_filepaths = set()
         if column_order is None:
-            self.column_order = ['index', *SAMPLE_IDENTIFIER_COLUMNS,  'run_number']
+            self.column_order = ['index', *SAMPLE_IDENTIFIER_COLUMNS, 'process_method', 'run_number']
         self.load_data()
         # self.data_updated = True
         # set up file syncing
@@ -389,17 +394,22 @@ class SpectroscopyDataMonitor:
         if len(extracted_data.index) <= 0:
             self.extracted_data = pd.DataFrame()
         else:
-            extracted_data['index'] = get_sample_ids(extracted_data, unique=False)
+            extracted_data['index'] = get_sample_ids(
+                extracted_data,
+                unique=False,
+                include_process_method=True
+            )
             if self.column_order is None:
                 self.extracted_data = extracted_data
             else:
-                # drop the columns listed in column order from the list of columns
+                # put columns in correct order
                 columns = list(extracted_data.columns)
                 for column in self.column_order:
                     columns.remove(column)
                 columns = [*self.column_order, *columns]
                 
                 self.extracted_data = extracted_data.reindex(columns, axis=1).sort_values('index', axis=0)
+
 
     def cache_data(self):
         # self.extracted_data.to_csv(self.watch_directory/self.extracted_data_filename, index=False)
@@ -415,12 +425,15 @@ class SpectroscopyDataMonitor:
         has_changed = False
         current_filepaths = get_relevant_filepaths(self.watch_directory)
         # check if the folder is empty of relevant files
-        if len(current_filepaths) == 0:
+        if len(current_filepaths) <= 0:
             if len(self.extracted_filepaths) > 0:
                 has_changed = True
             self.extracted_filepaths = set()
             self.extracted_data = pd.DataFrame()
             self.syncing = False
+            if has_changed and cache:
+                self.cache_data()
+
             return self.extracted_data, has_changed
         # remove any files that were deleted
         deleted_filepaths = self.extracted_filepaths - current_filepaths
@@ -481,10 +494,7 @@ class SpectroscopyDataMonitor:
         else:
             logger.info(f'cached data loaded')
         finally:
-            self.sync_data()
-            if len(self.extracted_data.index) > 0:
-                if cache:
-                    self.cache_data()
+            self.sync_data(cache=cache)
             return self.extracted_data, self.extracted_filepaths
         
 
