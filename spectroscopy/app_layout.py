@@ -1,16 +1,17 @@
 import logging
+from operator import is_
 
 import dash_core_components as dcc
 import dash_html_components as html
-from dash_html_components.Small import Small
 from dash_table import DataTable
+from dash_table.Format import Format, Scheme
 from pandas.api.types import is_datetime64_any_dtype as is_datetime, is_numeric_dtype
 
 
 
 
 from spectroscopy.app_utils import get_user_settings
-from spectroscopy.data import AVAILABLE_TARGETS
+from spectroscopy.data import AVAILABLE_TARGETS, SCAN_FILE_DATETIME_FORMAT
 from spectroscopy.utils import get_wavelength_columns
 
 ENABLE_UI_UPLOAD = False
@@ -78,20 +79,25 @@ def settings_content():
     )
 
 ## TRAININING
-# TODO: change decimal precision of predicted results
 def model_data_table(data, tag):
     columns = []
     for column in data.columns:
         column_config = {
             'name':column,
             'id':column,
-            'type': 'datetime' if is_datetime(data[column]) else 'text',
         }
+        # add formatting for numeric columns
         if is_numeric_dtype(data[column]):
-            data[column] = data[column].round(TABLE_NUMERIC_PRECISION)
-            # column_config['format'] = {
-            #     'specifier':f".{TABLE_NUMERIC_PRECISION}f"
-            # }
+            # data[column] = data[column].round(TABLE_NUMERIC_PRECISION)
+            column_config.update({
+                'type':'numeric',
+                'format':Format(
+                    precision=TABLE_NUMERIC_PRECISION,
+                    scheme=Scheme.fixed
+                )
+            })
+        elif is_datetime(data[column]):
+            data[column] = data[column].dt.strftime(SCAN_FILE_DATETIME_FORMAT)     
         columns.append(column_config)
     return html.Div([
         DataTable(
@@ -200,6 +206,9 @@ def trained_models_section():
             dcc.Loading(id='model-metrics-wrapper')
         ],
     )
+
+def predicted_vs_actual_graph():
+    pass
 
 
 def metric_card(metric_name, metric_value, n_columns=1):

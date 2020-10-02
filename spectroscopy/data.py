@@ -61,7 +61,7 @@ def get_relevant_filepaths(data_dir=DATA_DIR, file_patterns=FILE_PATTERNS):
         file_paths |= set(data_dir.glob(pattern))
     return file_paths
 
-
+# TODO: use index?
 def get_sample_ids(samples, identifier_columns=SAMPLE_IDENTIFIER_COLUMNS,
                    include_run_number=True, unique=True):
     if isinstance(samples, pd.DataFrame):
@@ -92,6 +92,7 @@ def get_sample_ids(samples, identifier_columns=SAMPLE_IDENTIFIER_COLUMNS,
 
 
 # TODO: add test for this
+# TODO: use index?
 def get_unmatched_sample_ids(df_lr, df_samples):
     lr_ids = get_sample_ids(df_lr, include_run_number=False)
     samples_ids = get_sample_ids(df_samples, include_run_number=False)
@@ -103,7 +104,7 @@ def _extract_spect_filename_info(filename):
     if '(' in sample_name_method:
         sample_name, _, process_method = sample_name_method.partition('(')
         sample_name = sample_name.strip().lower()
-        process_method = process_method.strip()[:-1] # drop )
+        process_method = process_method.strip()[:-1]
     else:
         sample_name = sample_name_method.strip().lower()
         process_method = ''
@@ -224,6 +225,7 @@ def get_sample_matches(filepaths):
     # get all available lab reports to try to match the trms
     available_lrs = get_relevant_filepaths(directory, LAB_REPORT_PATTERN)
     # for each provided trm filepath calculate the ids for matching to lab report
+    # TODO: use index?
     trm_ids = get_sample_ids(trm_filepaths, include_run_number=False, unique=False)
     available_lr_ids = get_sample_ids(available_lrs, include_run_number=False, unique=False)
     lab_report_lookup = dict(zip(available_lr_ids, available_lrs))
@@ -236,6 +238,7 @@ def get_sample_matches(filepaths):
     # get matching trm for each lab report path
     lr_filepaths = {filepath for filepath in filepaths if is_lab_report(filepath)}
     # for each provided lab report filepath calculate the ids for matching to trm
+    # TODO: use index?
     lr_ids = get_sample_ids(lr_filepaths, include_run_number=False, unique=False)
     available_trms = get_relevant_filepaths(directory, TRM_PATTERN)
     available_trm_ids = get_sample_ids(available_trms, include_run_number=False, unique=False)
@@ -327,8 +330,7 @@ def parse_lab_reports(data_dir=None, skip_paths=None, concurrent=True,
 def load_cached_extracted_data(data_dir, extracted_data_filename):
 
     extracted_data_filepath = data_dir / extracted_data_filename
-    with open(extracted_data_filepath, 'rb') as f:
-        extracted_data = pickle.load(f)
+    extracted_data = pd.read_pickle(extracted_data_filepath)
 
     extracted_ref_path = data_dir / EXTRACTED_REFERENCE_FILENAME
     with open(extracted_ref_path, 'rb') as f:
@@ -370,7 +372,7 @@ class SpectroscopyDataMonitor:
         self.extracted_data = pd.DataFrame()
         self.extracted_filepaths = set()
         if column_order is None:
-            self.column_order = SAMPLE_IDENTIFIER_COLUMNS
+            self.column_order = ['index', *SAMPLE_IDENTIFIER_COLUMNS,  'run_number']
         self.load_data()
         # self.data_updated = True
         # set up file syncing
@@ -384,15 +386,19 @@ class SpectroscopyDataMonitor:
 
     def _set_extracted_data(self, extracted_data):
         # self.extracted_data = extracted_data.set_index(SAMPLE_IDENTIFIER_COLUMNS)
-        if self.column_order is None:
-            self.extracted_data = extracted_data
+        if len(extracted_data.index) <= 0:
+            self.extracted_data = pd.DataFrame()
         else:
-            # drop the columns listed in column order from the list of columns
-            columns = list(extracted_data.columns)
-            for column in self.column_order:
-                columns.remove(column)
-            columns = [*self.column_order, *columns]
-            self.extracted_data = extracted_data.reindex(columns, axis=1)
+            extracted_data['index'] = get_sample_ids(extracted_data, unique=False)
+            if self.column_order is None:
+                self.extracted_data = extracted_data
+            else:
+                # drop the columns listed in column order from the list of columns
+                columns = list(extracted_data.columns)
+                for column in self.column_order:
+                    columns.remove(column)
+                columns = [*self.column_order, *columns]
+                self.extracted_data = extracted_data.reindex(columns, axis=1).sort_values('index', axis=0)
 
     def cache_data(self):
         # self.extracted_data.to_csv(self.watch_directory/self.extracted_data_filename, index=False)
@@ -433,7 +439,7 @@ class SpectroscopyDataMonitor:
         new_filepaths = current_filepaths - self.extracted_filepaths
         if len(new_filepaths) > 0:
             # TODO: pretty print this or/and display in UI
-            logger.warn(f'new files added: {new_filepaths}')
+            logger.warn(f'new files added: {[fp.name for fp in new_filepaths]}')
             matched_filepaths = get_sample_matches(new_filepaths)
             # extract the data for matched files and added files
             skip_paths = self.extracted_filepaths - (matched_filepaths | new_filepaths)
@@ -478,9 +484,6 @@ class SpectroscopyDataMonitor:
             if len(self.extracted_data.index) > 0:
                 if cache:
                     self.cache_data()
-                self.extracted_samples_ids = get_sample_ids(self.extracted_data)
-            else:
-                self.extracted_samples_ids = set()
             return self.extracted_data, self.extracted_filepaths
         
 
