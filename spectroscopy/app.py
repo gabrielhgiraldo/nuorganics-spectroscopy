@@ -19,7 +19,8 @@ from spectroscopy.app_layout import (
     model_data_table,
 )
 from spectroscopy.app_utils import (
-    get_inference_data_path, get_model_dir,
+    get_inference_data_path, 
+    get_model_dir,
     get_training_data_path,
     get_user_settings,
     inference_models,
@@ -27,7 +28,7 @@ from spectroscopy.app_utils import (
     upload_inference_data,
 )
 from spectroscopy.data import INFERENCE_RESULTS_FILENAME, SpectroscopyDataMonitor, EXTRACTED_DATA_FILENAME
-from spectroscopy.model import train_models, load_all_model_metrics
+from spectroscopy.model import train_models, load_all_performance_artifacts
 ## NEWEST TODO
 # TODO: make script to correct file namings
 # TODO: sync data on refresh
@@ -157,7 +158,7 @@ def on_train_models(n_clicks, training_targets):
     # TODO: train only on a subset of the data based on the table state
     if n_clicks:
         model_dir = get_model_dir()
-        model_metrics, models = train_models(
+        artifacts, models = train_models(
             targets=training_targets,
             data=training_data_monitor.extracted_data,
             model_dir=model_dir
@@ -165,8 +166,9 @@ def on_train_models(n_clicks, training_targets):
         # predict on test data and add it to the testing data section for exportation
         # generate testing data section
     else:
-         model_metrics = load_all_model_metrics(model_dir=get_model_dir())
-    return model_performance_section(model_metrics)
+        #  model_metrics = load_all_model_metrics(model_dir=get_model_dir())
+        artifacts = load_all_performance_artifacts(model_dir=get_model_dir())
+    return model_performance_section(artifacts)
 
 @app.callback(
     output=Output('inference-table-wrapper', 'children'),

@@ -6,13 +6,12 @@ from datetime import datetime
 
 import pandas as pd
 
-from spectroscopy.model import load_model, load_model_metrics, transform_data
+from spectroscopy.model import load_model, transform_data
 from spectroscopy.data import (
     AVAILABLE_TARGETS,
     INFERENCE_RESULTS_FILENAME,
     extract_data,
 )
-INTERNAL_CONFIG_FILEPATH = Path(__file__).parent / 'config.ini'
 USER_CONFIG_PATH = Path('config.ini')
 DEFAULT_USER_CONFIGS = {
     'paths':{
@@ -20,6 +19,7 @@ DEFAULT_USER_CONFIGS = {
         'data-path':'%(project-path)s/data',
         # 'training-data-path':'%(data-path)s/training',
         # 'testing-data-path':'%(data-path)s/testing',
+        'models-path':'%(project-path)s/models',
         'results-data-path':'%(project-path)s/results',
     }
 }
@@ -79,6 +79,10 @@ def get_training_data_path():
 def get_inference_data_path():
     return Path(get_user_settings()['paths']['results-data-path'])
 
+
+def get_model_dir():
+    return Path(get_user_settings()['paths']['models-path'])
+
 # # TODO: use new SpectroscopyDataEventHandler
 # def load_training_data(skip_paths=None):
 #     training_data_path = get_training_data_path()
@@ -117,10 +121,6 @@ def upload_inference_data(contents, filenames):
         extracted_filename=INFERENCE_RESULTS_FILENAME
     )  
 
-
-def get_model_dir():
-    return Path(get_user_settings()['paths']['project-path'])
-    
 
 def load_models(tags):
     if tags is None:

@@ -366,6 +366,8 @@ def load_cached_extracted_data(data_dir, extracted_data_filename):
 #         # update cache
 #         print(event)
 #     # TODO: implement other event type handlers?
+def _is_target_column(column_name):
+    return any([str(column_name).endswith(target) for target in AVAILABLE_TARGETS])
 
 
 class SpectroscopyDataMonitor:
@@ -406,7 +408,11 @@ class SpectroscopyDataMonitor:
                 columns = list(extracted_data.columns)
                 for column in self.column_order:
                     columns.remove(column)
-                columns = [*self.column_order, *columns]
+                # get original & predicted values
+                value_columns = [column for column in columns if _is_target_column(column)]
+                for column in value_columns:
+                    columns.remove(column)
+                columns = [*self.column_order, *value_columns, *columns]
                 
                 self.extracted_data = extracted_data.reindex(columns, axis=1).sort_values('index', axis=0)
 

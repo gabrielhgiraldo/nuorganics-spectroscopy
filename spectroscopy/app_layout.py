@@ -257,11 +257,16 @@ def model_card(model_tag, metrics):
 
 # TODO: include residual graphs, fit graphs, other graphs,
 # TODO: include maximum value, minimum value for each metric, stdev, etc.
-def model_performance_section(model_metrics):
+def model_performance_section(artifacts):
+    model_metrics = artifacts['metrics']
     metrics_cards = []
     for model, metrics in model_metrics.items():
         card = model_card(model, metrics)
         metrics_cards.append(card)
+    model_graphs = artifacts['graphs']
+    # TODO: include model graphs
+    # for model, graphs in model_graphs.items():
+    #     graph = mode
     return html.Div(
         children=[html.H5('Performance'), *metrics_cards]
     )

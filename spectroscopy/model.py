@@ -1,6 +1,7 @@
 import json
 import logging
 from pathlib import Path
+# from spectroscopy.app_layout import predicted_vs_actual_graph
 
 # from lightgbm import LGBMRegressor
 import numpy as np
@@ -32,6 +33,7 @@ from spectroscopy.utils import(
 MODEL_DIR = Path('bin/model/')
 MODEL_FILENAME = 'model.pkl'
 MODEL_METRICS_FILENAME = 'scores.json'
+MODEL_PRED_ACT_GRAPH_FILENAME = 'pred_v_actual.png'
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -134,7 +136,9 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
     X = transform_data(data)
     # TODO: have feature extraction occur in model pipeline
     # TODO: add ability to include different experiments in one training run
-    all_scores = {}
+    artifacts= {
+        'metrics':{}
+    }
     models = {}
     for target in targets:
         logger.info(f'Fitting {target} model')
@@ -162,9 +166,9 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
             # TODO: use database or experiment handling framework for metrics storage
             with open(target_model_dir/MODEL_METRICS_FILENAME, 'w') as f:
                 json.dump(scores, f)
-            all_scores[target] = scores
+            artifacts['metrics'][target] = scores
     if evaluate:
-        return all_scores, models
+        return artifacts, models
     return models
 
 
@@ -186,31 +190,32 @@ def load_model_metrics(model_target, model_dir=None):
         scores = json.load(f)
     return scores
 
+# TODO: do we want to generate the graphs once and display them as images on the UI?
+# TODO: OR do we want to predict on the test data and generate the graphs dynamically?
+# def load_model_graphs(model_target, model_dir=None):
+#     if model_dir is None:
+#         model_dir = MODEL_DIR
+#     model_dir = Path(model_dir) / model_target
+#     with open(model_dir / MODEL_PRED_ACT_GRAPH_FILENAME) as f:
+#         # scores = json.load(f)
+#         # pred_v_actual_graph = predicted_vs_actual_graph()
+#     return scores
 
-def load_all_model_metrics(model_dir=None):
-    """Load performance metrics for models of all available targets(N, Moisture, K, etc.)"""
-    metrics = {}
-    for target in AVAILABLE_TARGETS:
-        try:
-            model_metrics = load_model_metrics(target, model_dir)
-        except FileNotFoundError as e:
-            logger.warning(e)
-        else:
-            metrics[target] = model_metrics
-    return metrics
-
-
-def load_performance_artifacts(model_dir=None):
-    metrics = {}
-    for target in AVAILABLE_TARGETS:
-        try:
-            model_metrics = load_model_metrics(target, model_dir)
-        except FileNotFoundError as e:
-            logger.warning(e)
-        else:
-            metrics[target] = model_metrics
-    return metrics
 
 def load_all_performance_artifacts(model_dir=None):
-    metrics = load_all_model_metrics(model_dir)
-    graphs = load_all_model_graphs
+    """load all performance artifacts in the model directory (metrics, graphs, etc.)"""
+    artifacts = {
+        'metrics':{},
+        'graphs':{}
+    }
+    metrics = {}
+    for target in AVAILABLE_TARGETS:
+        try:
+            model_metrics = load_model_metrics(target, model_dir)
+            # model_graphs = load_model_graphs(target, model_dir)
+        except FileNotFoundError as e:
+            logger.warning(e)
+        else:
+            artifacts['metrics'][target] = model_metrics
+            # artifacts['graphs'][target] = model_graphs
+    return artifacts
