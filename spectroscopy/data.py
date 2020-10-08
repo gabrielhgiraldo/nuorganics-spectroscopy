@@ -414,7 +414,7 @@ class SpectroscopyDataMonitor:
         #     recursive=False
         # )
 
-    def _set_extracted_data(self, extracted_data):
+    def set_extracted_data(self, extracted_data):
         # self.extracted_data = extracted_data.set_index(SAMPLE_IDENTIFIER_COLUMNS)
         if len(extracted_data.index) <= 0:
             self.extracted_data = pd.DataFrame()
@@ -438,6 +438,8 @@ class SpectroscopyDataMonitor:
                 columns = [*self.column_order, *value_columns, *columns]
                 
                 self.extracted_data = extracted_data.reindex(columns, axis=1).sort_values('index', axis=0)
+            # update cache
+            self.cache_data()
 
 
     def cache_data(self):
@@ -474,7 +476,7 @@ class SpectroscopyDataMonitor:
             for key in filename_keys:
                 if key in self.extracted_data:
                     mask |= self.extracted_data[key].isin(deleted_filenames)        
-            self._set_extracted_data(self.extracted_data[~mask])
+            self.set_extracted_data(self.extracted_data[~mask])
             self.extracted_filepaths -= deleted_filepaths
             has_changed = True
 
@@ -493,7 +495,7 @@ class SpectroscopyDataMonitor:
                 skip_paths=skip_paths
             )
             self.extracted_filepaths |= new_extracted_files
-            self._set_extracted_data(pd.concat([self.extracted_data, new_data], ignore_index=True))
+            self.set_extracted_data(pd.concat([self.extracted_data, new_data], ignore_index=True))
             has_changed = True
         if has_changed and cache:
             self.cache_data()
@@ -510,7 +512,7 @@ class SpectroscopyDataMonitor:
                 data_dir=self.watch_directory,
                 extracted_data_filename=self.extracted_data_filename
             )
-            self._set_extracted_data(extracted_data)
+            self.set_extracted_data(extracted_data)
             if skip_paths is None:
                 skip_paths = self.extracted_filepaths
             else:

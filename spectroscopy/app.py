@@ -187,8 +187,7 @@ def on_inference(inference_clicks, contents, filenames, inference_targets):
             raise PreventUpdate
     elif inference_clicks and inference_targets:
         data = inference_models(inference_targets, inference_data_monitor.extracted_data)
-        inference_data_monitor._set_extracted_data(data)
-        inference_data_monitor.cache_data()
+        inference_data_monitor.set_extracted_data(data)
     else:
         try:
             data, has_change = inference_data_monitor.sync_data()
