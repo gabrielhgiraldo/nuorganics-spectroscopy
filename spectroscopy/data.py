@@ -45,6 +45,17 @@ DEFAULT_MAX_WORKERS = 1
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+
+class UnmatchedFilesException(Exception):
+    def __init__(self, message, unmatched_filepaths):
+        self.unmatched_filepaths = unmatched_filepaths
+        super().__init__(message)
+
+
+    def __repr__(self) -> str:
+        return f"{super().__repr__()}: unmatched files {self.unmatched_filepaths}" 
+
+
 def is_spect_file(filepath):
     return filepath.suffix in ['.TRM', '.ABS']
 
@@ -64,6 +75,18 @@ def get_relevant_filepaths(data_dir=DATA_DIR, file_patterns=FILE_PATTERNS):
 # TODO: use index?
 def get_sample_ids(samples, identifier_columns=SAMPLE_IDENTIFIER_COLUMNS,
                    include_run_number=True, include_process_method=False, unique=True):
+    """Get sample ids for given samples.
+
+    Args:
+        samples ([pathlib.Path] OR pd.DataFrame): [list of samples to get ids for (could be lab reports or spect files)]
+        identifier_columns ([string], optional): [list of columns to use as common identifiers]. Defaults to SAMPLE_IDENTIFIER_COLUMNS.
+        include_run_number (bool, optional): [include run_number in id (applicable to spect files)]. Defaults to True.
+        include_process_method (bool, optional): [include process_method in id]. Defaults to False.
+        unique (bool, optional): [whether to include only the unique ids, or all ids]. Defaults to True.
+
+    Returns:
+        [tuple]: [ids for provided samples]
+    """
     if isinstance(samples, pd.DataFrame):
         if include_process_method:
             identifier_columns = [*identifier_columns, 'process_method']
@@ -284,8 +307,8 @@ def extract_data(data_path=DATA_DIR, extracted_filename=EXTRACTED_DATA_FILENAME,
         if len(unmatched_samples) > 0:
             message = f'unable to match samples {unmatched_samples}'
             logger.warning(message)
-            # TODO: add custom exception for this
-            raise Exception(message)
+            # TODO: only include the unmatched files here
+            raise UnmatchedFilesException(message, trm_filepaths|lr_filepaths)
         lr_to_join = df_lr.set_index(SAMPLE_IDENTIFIER_COLUMNS)[lab_report_columns]
         df = df_trms.join(lr_to_join, on=SAMPLE_IDENTIFIER_COLUMNS, lsuffix='_trm', rsuffix='_lr')\
                                             .reset_index(drop=True)

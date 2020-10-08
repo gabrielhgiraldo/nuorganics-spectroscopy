@@ -27,7 +27,7 @@ from spectroscopy.app_utils import (
     save_user_settings,
     upload_inference_data,
 )
-from spectroscopy.data import INFERENCE_RESULTS_FILENAME, SpectroscopyDataMonitor, EXTRACTED_DATA_FILENAME
+from spectroscopy.data import INFERENCE_RESULTS_FILENAME, SpectroscopyDataMonitor, EXTRACTED_DATA_FILENAME, UnmatchedFilesException
 from spectroscopy.model import train_models, load_all_performance_artifacts
 ## NEWEST TODO
 # TODO: make script to correct file namings
@@ -178,10 +178,16 @@ def on_train_models(n_clicks, training_targets):
            State('inference-target-selection','value')]
 )
 def on_inference(inference_clicks, contents, filenames, inference_targets):
+    # TODO: determine why inference is not outputting correctly
     if contents and filenames:
-        data, _ = upload_inference_data(contents, filenames)
+        try:
+            data, _ = upload_inference_data(contents, filenames)
+        except UnmatchedFilesException as e:            
+            # TODO: inform UI that some files were unmatched
+            raise PreventUpdate
     elif inference_clicks and inference_targets:
         data = inference_models(inference_targets, inference_data_monitor.extracted_data)
+        inference_data_monitor._set_extracted_data(data)
         inference_data_monitor.cache_data()
     else:
         try:

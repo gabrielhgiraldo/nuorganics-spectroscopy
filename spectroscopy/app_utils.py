@@ -9,7 +9,7 @@ import pandas as pd
 from spectroscopy.model import load_model, transform_data
 from spectroscopy.data import (
     AVAILABLE_TARGETS,
-    INFERENCE_RESULTS_FILENAME,
+    INFERENCE_RESULTS_FILENAME, UnmatchedFilesException,
     extract_data,
 )
 USER_CONFIG_PATH = Path('config.ini')
@@ -96,15 +96,21 @@ def get_model_dir():
 
 def upload_data(path, contents, filenames, extracted_filename,
                 skip_paths=None):
-
     path.mkdir(exist_ok=True, parents=True)
     for content, filename in zip(contents, filenames):
         content_type, _, content_string = content.partition(',')
         decoded = base64.b64decode(content_string)
         with open(path/filename, 'wb') as f:
             f.write(decoded)
-    data, extracted_filepaths = extract_data(path, extracted_filename, skip_paths=skip_paths, cache=False)
-    return data, extracted_filepaths
+    try:
+        data, extracted_filepaths = extract_data(path, extracted_filename, skip_paths=skip_paths, cache=False)
+    except UnmatchedFilesException as e:
+        # remove uploaded files
+        for filepath in e.unmatched_filepaths:
+            filepath.unlink()
+        raise
+    else:
+        return data, extracted_filepaths
 
 
 def upload_training_data(contents, filenames, skip_paths=None):
