@@ -367,40 +367,19 @@ def load_cached_extracted_data(data_dir, extracted_data_filename):
     return extracted_data, set(extracted_filepaths)
 
 
-# class SpectroscopyDataEventHandler(FileSystemEventHandler):
-#     def __init__(self, sync_data, extraction_func):
-#         super().__init__()
-#         self.sync_data = sync_data
-#         self.extraction_func = extraction_func
-
-
-#     def on_created(self, event):
-#         # get files that were created/moved here
-#         # new_data = self.extraction_func(event.src_path)
-#         # data = pd.concat([new_data, self.sync_data])
-#         print(event)
-        
- 
-#     def on_deleted(self, event):
-#         # on_created_func()
-#         # get files that were delete from here
-#         # remove information from the reference
-#         # remove related information from cached files
-#         # update cache
-#         print(event)
-#     # TODO: implement other event type handlers?
 def _is_target_column(column_name):
     return any([str(column_name).endswith(target) for target in AVAILABLE_TARGETS])
 
 
 class SpectroscopyDataMonitor:
     def __init__(self, watch_directory, extracted_data_filename=EXTRACTED_DATA_FILENAME,
-                 column_order=None):
+                 column_order=None, cache=True):
         self.syncing = False
         self.watch_directory = watch_directory
         self.extracted_data_filename = extracted_data_filename
         self.extracted_data = pd.DataFrame()
         self.extracted_filepaths = set()
+        self.cache = cache
         if column_order is None:
             self.column_order = ['index', *SAMPLE_IDENTIFIER_COLUMNS, 'process_method', 'run_number']
         self.load_data()
@@ -438,8 +417,9 @@ class SpectroscopyDataMonitor:
                 columns = [*self.column_order, *value_columns, *columns]
                 
                 self.extracted_data = extracted_data.reindex(columns, axis=1).sort_values('index', axis=0)
-            # update cache
-            self.cache_data()
+            if self.cache:
+                # update cache
+                self.cache_data()
 
 
     def cache_data(self):
@@ -449,7 +429,7 @@ class SpectroscopyDataMonitor:
             pickle.dump(self.extracted_filepaths, f)
 
 
-    def sync_data(self, cache=True):
+    def sync_data(self):
         self.syncing = True
         # get set of files that are in current directory
         # TODO: include abs files?
@@ -459,12 +439,9 @@ class SpectroscopyDataMonitor:
         if len(current_filepaths) <= 0:
             if len(self.extracted_filepaths) > 0:
                 has_changed = True
+            self.set_extracted_data(pd.DataFrame())
             self.extracted_filepaths = set()
-            self.extracted_data = pd.DataFrame()
             self.syncing = False
-            if has_changed and cache:
-                self.cache_data()
-
             return self.extracted_data, has_changed
         # remove any files that were deleted
         deleted_filepaths = self.extracted_filepaths - current_filepaths
@@ -491,19 +468,19 @@ class SpectroscopyDataMonitor:
             # skip_paths = self.extracted_filepaths
             new_data, new_extracted_files = extract_data(
                 data_path=self.watch_directory,
-                cache=False,
+                cache=self.cache,
                 skip_paths=skip_paths
             )
             self.extracted_filepaths |= new_extracted_files
-            self.set_extracted_data(pd.concat([self.extracted_data, new_data], ignore_index=True))
+            self.set_extracted_data(
+                extracted_data=pd.concat([self.extracted_data, new_data], ignore_index=True),
+            )
             has_changed = True
-        if has_changed and cache:
-            self.cache_data()
         self.syncing = False
         return self.extracted_data, has_changed
             
 
-    def load_data(self, cache=True, skip_paths=None):
+    def load_data(self, skip_paths=None):
         data_path = self.watch_directory
         try:
             # extract cached data
@@ -525,7 +502,7 @@ class SpectroscopyDataMonitor:
         else:
             logger.info(f'cached data loaded')
         finally:
-            self.sync_data(cache=cache)
+            self.sync_data()
             return self.extracted_data, self.extracted_filepaths
         
 

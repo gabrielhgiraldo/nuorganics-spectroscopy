@@ -19,11 +19,12 @@ def test_data_dir():
 @pytest.fixture
 def monitor(test_data_dir):
     return SpectroscopyDataMonitor(
-        watch_directory=test_data_dir
+        watch_directory=test_data_dir,
+        cache=False
     )
 
 def test_extract_data(test_data_dir):
-    extracted_data, extracted_filepaths = extract_data(test_data_dir, concurrent=True)
+    extracted_data, extracted_filepaths = extract_data(test_data_dir, concurrent=True, cache=False)
     # assert that all TRM scan files were extracted correctly
     trm_filepaths = get_relevant_filepaths(test_data_dir, TRM_PATTERN)
     assert len(extracted_data.index) == len(trm_filepaths)
@@ -41,7 +42,6 @@ def test_get_sample_matches(test_data_dir):
     
 
 
-# TODO: create test for deletion
 def test_sync_delete_add_data(monitor):
     directory = monitor.watch_directory
     # create temporary directory
@@ -61,7 +61,7 @@ def test_sync_delete_add_data(monitor):
         trm.rename(new_location)
         new_deleted_locations.add(new_location)
     # sync monitor
-    extracted_data, has_changed = monitor.sync_data(cache=False)
+    extracted_data, has_changed = monitor.sync_data()
     # check that syncing worked correctly
     assert has_changed
     updated_num_extracted = len(extracted_data.index)
@@ -71,7 +71,7 @@ def test_sync_delete_add_data(monitor):
     for trm in new_deleted_locations:
         trm.rename(directory/trm.name)
     # sync monitor
-    extracted_data, has_changed = monitor.sync_data(cache=False)
+    extracted_data, has_changed = monitor.sync_data()
     # check that syncing worked correctly
     assert has_changed
     previous_num_extracted = updated_num_extracted
