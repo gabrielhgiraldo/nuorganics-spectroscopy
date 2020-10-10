@@ -6,6 +6,7 @@ import re
 from typing import Iterable
 
 import pandas as pd
+from pandas.api.types import is_datetime64_any_dtype as is_datetime
 import pickle
 # from watchdog.observers import Observer
 # from watchdog.events import FileSystemEventHandler
@@ -281,8 +282,8 @@ def get_sample_matches(filepaths):
     return trm_matches | lr_matches
 
 
-def extract_data(data_path=DATA_DIR, extracted_filename=EXTRACTED_DATA_FILENAME,
-                cache=True, skip_paths=None, concurrent=True,
+def extract_data(data_path=DATA_DIR,
+                skip_paths=None, concurrent=True,
                 lab_report_columns=LAB_REPORT_COLUMNS):
     # handle transmittance
     df_trms, trm_filepaths = parse_trm_files(
@@ -321,12 +322,6 @@ def extract_data(data_path=DATA_DIR, extracted_filename=EXTRACTED_DATA_FILENAME,
         # ensure that matching occurred correctly
         assert len(df.index) == len(trm_filepaths)
         extracted_files = set([*trm_filepaths, *lr_filepaths])
-    if cache:
-        # df.to_csv(data_path/extracted_filename, index=False)
-        with open(data_path/extracted_filename, 'wb') as f:
-            pickle.dump(df, f)
-        with open(data_path/EXTRACTED_REFERENCE_FILENAME, 'wb') as f:
-            pickle.dump(extracted_files, f)
 
     return df, extracted_files
 
@@ -394,35 +389,47 @@ class SpectroscopyDataMonitor:
         # )
 
     def set_extracted_data(self, extracted_data):
-        # self.extracted_data = extracted_data.set_index(SAMPLE_IDENTIFIER_COLUMNS)
+        """update the extracted data attribute for the monitor"""
         if len(extracted_data.index) <= 0:
             self.extracted_data = pd.DataFrame()
         else:
+            # TODO: make this the actual index?
+            # create explicit index column for sorting
             extracted_data['index'] = get_sample_ids(
                 extracted_data,
                 unique=False,
                 include_process_method=True
             )
+            
             if self.column_order is None:
                 self.extracted_data = extracted_data
             else:
-                # put columns in correct order
+                # first, remove the explicitly ordered columns
                 columns = list(extracted_data.columns)
                 for column in self.column_order:
                     columns.remove(column)
-                # get original & predicted values
+                # next remove the target columns
                 value_columns = [column for column in columns if _is_target_column(column)]
                 for column in value_columns:
                     columns.remove(column)
-                columns = [*self.column_order, *value_columns, *columns]
-                
+                # place columns in order
+                columns = [
+                    *self.column_order, # explicitly ordered columns
+                    *value_columns, # target/value columns (Ammonia, N, etc.)
+                    *columns # remaining columns
+                ]
+                # apply column order to dataframe
                 self.extracted_data = extracted_data.reindex(columns, axis=1).sort_values('index', axis=0)
+            # TODO: if caching becomes slow, put this on a separate thread
+            # TODO: if caching becomes slow, add caching only when changes occur
             if self.cache:
                 # update cache
                 self.cache_data()
 
 
     def cache_data(self):
+        """store the extracted data as a file in the watch directory.
+        """
         # self.extracted_data.to_csv(self.watch_directory/self.extracted_data_filename, index=False)
         self.extracted_data.to_pickle(self.watch_directory/self.extracted_data_filename)
         with open(self.watch_directory/EXTRACTED_REFERENCE_FILENAME, 'wb') as f:
@@ -430,6 +437,11 @@ class SpectroscopyDataMonitor:
 
 
     def sync_data(self):
+        """check for changes in the watch directory and update extracted data accordingly.
+
+        Returns:
+            tuple[pd.DataFrame, bool]: extracted data and whether the data changed since last sync.
+        """
         self.syncing = True
         # get set of files that are in current directory
         # TODO: include abs files?
@@ -468,10 +480,18 @@ class SpectroscopyDataMonitor:
             # skip_paths = self.extracted_filepaths
             new_data, new_extracted_files = extract_data(
                 data_path=self.watch_directory,
-                cache=self.cache,
-                skip_paths=skip_paths
+                skip_paths=skip_paths,
             )
             self.extracted_filepaths |= new_extracted_files
+            # make sure that datetime types align
+            for column in new_data.columns:
+                if is_datetime(new_data[column]) or str(column).endswith('date'):
+                    new_data[column] = pd.to_datetime(
+                        arg=new_data[column],
+                        format=SCAN_FILE_DATETIME_FORMAT,
+                        errors='coerce'
+                    ).dt.strftime(SCAN_FILE_DATETIME_FORMAT)
+
             self.set_extracted_data(
                 extracted_data=pd.concat([self.extracted_data, new_data], ignore_index=True),
             )

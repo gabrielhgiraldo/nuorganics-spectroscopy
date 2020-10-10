@@ -1,5 +1,6 @@
 import logging
 import os
+from tests.test_data import monitor
 from threading import Timer
 import webbrowser
 
@@ -41,6 +42,9 @@ from spectroscopy.model import train_models, load_all_performance_artifacts
 # TODO: add ability to configure included model parameters
 # TODO: add ability to save retrained model(s)
 # TODO: add ability to view and download prediction results
+TRAINING_SYNC_INTERVAL = 60000
+INFERENCE_SYNC_INTERVAL = 60000
+
 app = dash.Dash(__name__,
     title='Nuorganics Spectroscopy',
     suppress_callback_exceptions=True,
@@ -60,7 +64,7 @@ inference_data_monitor = SpectroscopyDataMonitor(
     watch_directory=get_inference_data_path(),
     extracted_data_filename=INFERENCE_RESULTS_FILENAME
 )
-
+monitors = [training_data_monitor, inference_data_monitor]
 
 def get_triggered_id():
     ctx = dash.callback_context
@@ -77,9 +81,9 @@ def render_content(tab):
     if tab == 'settings-tab':
         return settings_content()
     elif tab == 'training-tab':
-        return training_content()
+        return training_content(TRAINING_SYNC_INTERVAL)
     elif tab == 'inference-tab':
-        return inference_content()
+        return inference_content(INFERENCE_SYNC_INTERVAL)
     else:
         return ['no content available for tab value']
 
@@ -179,22 +183,22 @@ def on_train_models(n_clicks, training_targets):
 )
 def on_inference(inference_clicks, contents, filenames, inference_targets):
     # TODO: determine why inference is not outputting correctly
-    if contents and filenames:
-        try:
-            data, _ = upload_inference_data(contents, filenames)
-        except UnmatchedFilesException as e:            
-            # TODO: inform UI that some files were unmatched
-            raise PreventUpdate
-    elif inference_clicks and inference_targets:
+    # TODO: get trigger id and determine that way
+    ctx = dash.callback_context
+    changed_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    if changed_id == 'run-inference' and inference_clicks and inference_targets:
         data = inference_models(inference_targets, inference_data_monitor.extracted_data)
         inference_data_monitor.set_extracted_data(data)
+    elif contents and filenames:
+        upload_inference_data(contents, filenames)
+        inference_data_monitor.sync_data()
     else:
         try:
-            data, has_change = inference_data_monitor.sync_data()
+           inference_data_monitor.sync_data()
         except FileNotFoundError:
             raise PreventUpdate
 
-    return model_data_table(data, 'inference')
+    return model_data_table(inference_data_monitor.extracted_data, 'inference')
 
 
 # TODO: figure out how to select certain rows for export
@@ -225,8 +229,12 @@ def on_inference(inference_clicks, contents, filenames, inference_targets):
 
 
 
+def _on_refresh():
+    for monitor in monitors:
+        monitor.sync_data()
+    return render_layout()
 
-app.layout = render_layout
+app.layout = _on_refresh
 
 
 if __name__ == '__main__':

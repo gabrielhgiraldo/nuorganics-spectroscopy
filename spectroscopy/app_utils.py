@@ -83,34 +83,15 @@ def get_inference_data_path():
 def get_model_dir():
     return Path(get_user_settings()['paths']['models-path'])
 
-# # TODO: use new SpectroscopyDataEventHandler
-# def load_training_data(skip_paths=None):
-#     training_data_path = get_training_data_path()
-#     return load_data(EXTRACTED_DATA_FILENAME, training_data_path, cache=True, skip_paths=skip_paths)
 
-# # TODO: use new SpectroscopyDataEventHandler
-# def load_inference_data():
-#     inference_data_path = get_inference_data_path()
-#     return load_data(INFERENCE_RESULTS_FILENAME, inference_data_path)
-
-
-def upload_data(path, contents, filenames, extracted_filename,
-                skip_paths=None):
+def upload_data(path, contents, filenames):
+    """save byte data to folder"""
     path.mkdir(exist_ok=True, parents=True)
     for content, filename in zip(contents, filenames):
         content_type, _, content_string = content.partition(',')
         decoded = base64.b64decode(content_string)
         with open(path/filename, 'wb') as f:
             f.write(decoded)
-    try:
-        data, extracted_filepaths = extract_data(path, extracted_filename, skip_paths=skip_paths, cache=False)
-    except UnmatchedFilesException as e:
-        # remove uploaded files
-        for filepath in e.unmatched_filepaths:
-            filepath.unlink()
-        raise
-    else:
-        return data, extracted_filepaths
 
 
 def upload_training_data(contents, filenames, skip_paths=None):
@@ -124,7 +105,6 @@ def upload_inference_data(contents, filenames):
         path=inference_data_path,
         contents=contents,
         filenames=filenames,
-        extracted_filename=INFERENCE_RESULTS_FILENAME
     )  
 
 

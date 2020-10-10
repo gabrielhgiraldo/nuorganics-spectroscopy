@@ -17,12 +17,10 @@ from spectroscopy.utils import get_wavelength_columns
 ENABLE_UI_UPLOAD = False
 METRIC_PRECISION = 2
 TABLE_NUMERIC_PRECISION = 2
-TRAINING_SYNC_INTERVAL = 20000
 TARGET_OPTIONS = [{'label':target, 'value':target} for target in AVAILABLE_TARGETS]
 logger = logging.getLogger(__name__)
 
 # TODO: fix certain columns on the left
-# TODO: order columns
 # TODO: include wavelength columns in export
 # TODO: split layout amongst tab sections?
 # TODO: add loading messages to loaders
@@ -96,7 +94,7 @@ def model_data_table(data, tag):
                     scheme=Scheme.fixed
                 )
             })
-        elif is_datetime(data[column]) or column.endswith('date'):
+        elif is_datetime(data[column]) or str(column).endswith('date'):
             data[column] = pd.to_datetime(
                 arg=data[column],
                 format=SCAN_FILE_DATETIME_FORMAT,
@@ -238,7 +236,6 @@ def metrics_section(section_name, metrics):
     ])
 
 # TODO: add model performance graphs here?
-# TODO: split metrics into sections (train vs test)
 def model_card(model_tag, metrics):
     metrics_sections = []
     for section, section_metrics in metrics.items():
@@ -274,13 +271,13 @@ def model_performance_section(artifacts):
 
 # TODO: adjust column ordering in training datatable
 # TODO: add testing data section and results
-def training_content():
+def training_content(sync_interval):
     return html.Div(
         children=[
             dcc.Loading(id='training-feedback'),
             model_data_section('training',
                 enable_upload=False,
-                sync_interval=TRAINING_SYNC_INTERVAL
+                sync_interval=sync_interval
             ),
             trained_models_section(),
         ],
@@ -288,9 +285,9 @@ def training_content():
 
 
 ## INFERENCE
-def inference_content():
+def inference_content(sync_interval):
     return html.Div([
-        model_data_section('inference'),
+        model_data_section('inference', sync_interval=sync_interval),
         target_selector('inference'),
         html.Button('run inference', id='run-inference', n_clicks=0)
     ])
