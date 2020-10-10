@@ -123,7 +123,6 @@ def transform_data(df):
     return X
 
 
-# TODO: generalize this for multiple targets
 def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_data_path=None,
                  evaluate=True):
     if model_dir is None:

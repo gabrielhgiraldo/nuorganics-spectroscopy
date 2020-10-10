@@ -32,7 +32,6 @@ from spectroscopy.data import INFERENCE_RESULTS_FILENAME, SpectroscopyDataMonito
 from spectroscopy.model import train_models, load_all_performance_artifacts
 ## NEWEST TODO
 # TODO: make script to correct file namings
-# TODO: sync data on refresh
 # TODO: make performance section a table
 # TODO: add performance graphs
 # TODO: browser freezing on load-up of data (paging?)
@@ -40,8 +39,6 @@ from spectroscopy.model import train_models, load_all_performance_artifacts
 # TODO: display model parameters
 # TODO: give ability to choose which columns to include in extraction from lab report, etc.
 # TODO: add ability to configure included model parameters
-# TODO: add ability to save retrained model(s)
-# TODO: add ability to view and download prediction results
 TRAINING_SYNC_INTERVAL = 60000
 INFERENCE_SYNC_INTERVAL = 60000
 

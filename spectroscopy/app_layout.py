@@ -269,7 +269,6 @@ def model_performance_section(artifacts):
     )
 
 
-# TODO: adjust column ordering in training datatable
 # TODO: add testing data section and results
 def training_content(sync_interval):
     return html.Div(
