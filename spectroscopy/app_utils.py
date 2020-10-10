@@ -129,6 +129,6 @@ def inference_models(model_tags, data):
     for model_tag, model in models.items():
         logger.info(f'running inference with model {model_tag}')
         data[f'predicted_{model_tag}'] = model.predict(X)
-        data[f'predicted_on'] = pd.to_datetime(datetime.now())
+        data[f'predicted_date'] = pd.to_datetime(datetime.now())
     return data
 
