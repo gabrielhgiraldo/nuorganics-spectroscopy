@@ -28,7 +28,7 @@ from spectroscopy.data import (
 
 from spectroscopy.utils import(
     get_wavelength_columns,
-    plot_fit,
+    plot_pred_v_actual,
 )
 MODEL_DIR = Path('bin/model/')
 MODEL_FILENAME = 'model.pkl'
@@ -136,7 +136,8 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
     # TODO: have feature extraction occur in model pipeline
     # TODO: add ability to include different experiments in one training run
     artifacts= {
-        'metrics':{}
+        'metrics':{},
+        'graphs':{}
     }
     models = {}
     for target in targets:
@@ -161,11 +162,16 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
             scores = score_model(model, X_train, y_train, X_test, y_test)
             logger.info(pprint(scores))
             logger.info('saving fit graph')
-            plot_fit(y_test, model.predict(X_test))
+            _, fig_save_path = plot_pred_v_actual(
+                y_true=y_test,
+                y_pred=model.predict(X_test),
+                save_dir = target_model_dir
+            )
             # TODO: use database or experiment handling framework for metrics storage
             with open(target_model_dir/MODEL_METRICS_FILENAME, 'w') as f:
                 json.dump(scores, f)
             artifacts['metrics'][target] = scores
+            artifacts['graphs'][target] = [fig_save_path]
     if evaluate:
         return artifacts, models
     return models
@@ -189,6 +195,12 @@ def load_model_metrics(model_target, model_dir=None):
         scores = json.load(f)
     return scores
 
+
+def get_model_graph_paths(model_target, model_dir=None):
+    # get all graphs in the path 
+    model_dir = Path(model_dir) / model_target
+    graph_paths = list(model_dir.glob('*.png'))
+    return graph_paths
 # TODO: do we want to generate the graphs once and display them as images on the UI?
 # TODO: OR do we want to predict on the test data and generate the graphs dynamically?
 # def load_model_graphs(model_target, model_dir=None):
@@ -196,7 +208,6 @@ def load_model_metrics(model_target, model_dir=None):
 #         model_dir = MODEL_DIR
 #     model_dir = Path(model_dir) / model_target
 #     with open(model_dir / MODEL_PRED_ACT_GRAPH_FILENAME) as f:
-#         # scores = json.load(f)
 #         # pred_v_actual_graph = predicted_vs_actual_graph()
 #     return scores
 
@@ -207,14 +218,17 @@ def load_all_performance_artifacts(model_dir=None):
         'metrics':{},
         'graphs':{}
     }
-    metrics = {}
     for target in AVAILABLE_TARGETS:
         try:
             model_metrics = load_model_metrics(target, model_dir)
+            # get saved model graph paths
             # model_graphs = load_model_graphs(target, model_dir)
+            model_graph_paths = get_model_graph_paths(target, model_dir)
+            
         except FileNotFoundError as e:
             logger.warning(e)
         else:
             artifacts['metrics'][target] = model_metrics
+            artifacts['graphs'][target] = model_graph_paths
             # artifacts['graphs'][target] = model_graphs
     return artifacts

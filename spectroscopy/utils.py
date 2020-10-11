@@ -1,6 +1,8 @@
 import logging
 
 import matplotlib.pyplot as plt
+import plotly.express as px
+
 import numpy as np
 # from sklearn.impute import SimpleImputer
 # TODO: write unittests
@@ -32,19 +34,35 @@ def get_wavelength_columns(df, lower_bound=None):
     return wavelength_columns
     
 
-def plot_fit(y_true, y_pred, save=True):
+def plot_pred_v_actual(y_true, y_pred, save=True, save_dir=None,
+                            save_filename='pred_v_actual.png'):
     max_value = np.max(y_true)
     max_value += max_value/10
-    plt.figure(figsize=(10,10))
+    fig = plt.figure(figsize=(10,10))
     plt.scatter(y_true, y_pred, alpha=0.5)
-    plt.title('Ammonia-N Prediction from Machine Learning Spectroscopy Inference Model')
+    # add 'ideal fit' line
     plt.plot(np.linspace(0, max_value, len(y_true)), np.linspace(0, max_value, len(y_true)))
+    # add title, labels, and limits
+    plt.title('Ammonia-N Prediction from Machine Learning Spectroscopy Inference Model')
     plt.xlabel('True Ammonia-N')
     plt.ylabel('Predicted Ammonia-N')
-    plt.xlim(0,max_value)
-    plt.ylim(0,max_value)
+    plt.xlim(0, max_value)
+    plt.ylim(0, max_value)
+    # fig = px.scatter(
+    #     x=y_true,
+    #     y=y_pred,
+    #     title='Ammonia-N Prediction from Machine Learning Spectroscopy Inference Model',
+    #     alpha=0.5,
+    # )
+    # fig.add_trace()
     if save:
-        plt.savefig('prediction_vs_truth.png')
+        if save_dir is not None:
+            save_path = save_dir/save_filename
+        else:
+            save_path = save_filename
+        fig.savefig(save_path)
+        return fig, save_path
+    return fig
 
 def plot_residuals(y_true, y_pred, save=True):
     plt.figure(figsize=(10,10))

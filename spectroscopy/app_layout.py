@@ -10,7 +10,7 @@ from pandas.api.types import is_datetime64_any_dtype as is_datetime, is_numeric_
 
 
 
-from spectroscopy.app_utils import get_user_settings
+from spectroscopy.app_utils import get_user_settings, img_path_to_base64
 from spectroscopy.data import AVAILABLE_TARGETS, SCAN_FILE_DATETIME_FORMAT
 from spectroscopy.utils import get_wavelength_columns
 
@@ -260,12 +260,23 @@ def model_performance_section(artifacts):
     for model, metrics in model_metrics.items():
         card = model_card(model, metrics)
         metrics_cards.append(card)
-    model_graphs = artifacts['graphs']
-    # TODO: include model graphs
-    # for model, graphs in model_graphs.items():
-    #     graph = mode
+    model_graph_paths = artifacts['graphs']
+    graph_imgs = []
+    for model, graph_paths in model_graph_paths.items():
+        model_graphs = [img_path_to_base64(path) for path in graph_paths]
+        model_graph_imgs = []
+        for graph in model_graphs:
+            graph_img = html.Img(
+                src='data:image/png;base64,{}'.format(graph)
+            )
+            model_graph_imgs.append(graph_img)
+        graph_imgs.extend(model_graph_imgs)
     return html.Div(
-        children=[html.H5('Performance'), *metrics_cards]
+        children=[
+            html.H5('Performance'),
+            *metrics_cards,
+            *graph_imgs
+        ]
     )
 
 

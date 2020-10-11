@@ -94,6 +94,12 @@ def upload_data(path, contents, filenames):
             f.write(decoded)
 
 
+def img_path_to_base64(img_path):
+    
+    with open(img_path, 'rb') as f:
+        return base64.b64encode(f.read()).decode('ascii')
+
+
 def upload_training_data(contents, filenames, skip_paths=None):
     training_data_path = get_training_data_path()
     return upload_data(training_data_path, contents, filenames, skip_paths=skip_paths)
@@ -122,8 +128,6 @@ def load_models(tags):
 
 # TODO: speed up inference of models with concurrency
 def inference_models(model_tags, data):
-    # if data is None:
-    #     data = load_inference_data()
     models = load_models(model_tags)
     X = transform_data(data)
     for model_tag, model in models.items():
