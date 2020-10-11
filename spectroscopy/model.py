@@ -163,6 +163,7 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
             logger.info(pprint(scores))
             logger.info('saving fit graph')
             _, fig_save_path = plot_pred_v_actual(
+                model_target=target,
                 y_true=y_test,
                 y_pred=model.predict(X_test),
                 save_dir = target_model_dir

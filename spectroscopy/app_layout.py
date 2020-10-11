@@ -206,6 +206,7 @@ def trained_models_section():
                 id='train-models',
                 n_clicks=0,
             ),
+            # TODO: fix placement of this so it doesn't move off screen
             dcc.Loading(id='model-metrics-wrapper')
         ],
     )

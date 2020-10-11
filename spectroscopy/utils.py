@@ -34,7 +34,7 @@ def get_wavelength_columns(df, lower_bound=None):
     return wavelength_columns
     
 
-def plot_pred_v_actual(y_true, y_pred, save=True, save_dir=None,
+def plot_pred_v_actual(y_true, y_pred, save=True, save_dir=None, model_target=None,
                             save_filename='pred_v_actual.png'):
     max_value = np.max(y_true)
     max_value += max_value/10
@@ -43,9 +43,9 @@ def plot_pred_v_actual(y_true, y_pred, save=True, save_dir=None,
     # add 'ideal fit' line
     plt.plot(np.linspace(0, max_value, len(y_true)), np.linspace(0, max_value, len(y_true)))
     # add title, labels, and limits
-    plt.title('Ammonia-N Prediction from Machine Learning Spectroscopy Inference Model')
-    plt.xlabel('True Ammonia-N')
-    plt.ylabel('Predicted Ammonia-N')
+    plt.title(f'{model_target} predicted vs actual')
+    plt.xlabel(f'True {model_target}')
+    plt.ylabel(f'Predicted {model_target}')
     plt.xlim(0, max_value)
     plt.ylim(0, max_value)
     # fig = px.scatter(
