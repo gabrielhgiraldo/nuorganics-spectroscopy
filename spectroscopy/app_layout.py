@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype as is_datetime, is_numeric_dtype
 import plotly.express as px
-import plotly.graph_objects as go
+
 
 
 from spectroscopy.app_utils import get_user_settings, img_path_to_base64
@@ -231,6 +231,8 @@ def pred_v_actual_graph(samples, target, y_pred, y_true):
             'y':f'Predicted {target}',
         },
         color='sample_name',
+        # color='process_method',
+        color_discrete_sequence=px.colors.qualitative.Vivid,
         category_orders={'sample_name':sorted(samples['sample_name'].unique())},
         hover_data=SCAN_IDENTIFIER_COLUMNS
     )
