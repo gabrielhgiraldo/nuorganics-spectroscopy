@@ -4,10 +4,11 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash_table import DataTable
 from dash_table.Format import Format, Scheme
+import numpy as np
 import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype as is_datetime, is_numeric_dtype
-
-
+import plotly.express as px
+import plotly.graph_objects as go
 
 
 from spectroscopy.app_utils import get_user_settings, img_path_to_base64
@@ -162,7 +163,7 @@ def target_selector(tag):
             style={'display':'inline-block'},
             value=AVAILABLE_TARGETS
         ),
-        html.P([html.Small(f'select models to {tag}')]),
+        html.P([html.Small(f'select models for {tag}')]),
     ])
 
 
@@ -210,9 +211,36 @@ def trained_models_section():
             dcc.Loading(id='model-metrics-wrapper')
         ],
     )
+# TODO: on hover, give sample information
+def pred_v_actual_graph(samples, target, y_pred, y_true):
+    max_value = y_true.max()
+    max_value += max_value/10
+    fig = px.scatter(
+        data_frame=samples,
+        x=y_true,
+        y=y_pred,
+        title=f'{target} predicted vs actual',
+        opacity=0.5,
+        range_x=[0, max_value],
+        range_y=[0, max_value],
+        width=800,
+        height=800,
+        labels={
+            'x':f'True {target}',
+            'y':f'Predicted {target}',
+        },
+        # color='sample_name ',
+        hover_data=['index']
+    )
+    # add ideal fit line
+    x = np.round(np.linspace(0, max_value, len(y_true)),2)
+    fig.add_trace(px.line(
+        x=x,
+        y=x,
+    ).data[0])
+    return dcc.Graph(figure=fig)
+    # fig.add_line()
 
-def predicted_vs_actual_graph():
-    pass
 
 
 def metric_card(metric_name, metric_value, n_columns=1):
@@ -255,29 +283,41 @@ def model_card(model_tag, metrics):
 
 # TODO: include residual graphs, fit graphs, other graphs,
 # TODO: include maximum value, minimum value for each metric, stdev, etc.
-def model_performance_section(artifacts):
+def model_performance_section(artifacts, interactive_graph=True):
+    # metrics
+    children = [html.H5('Performance')]
     model_metrics = artifacts['metrics']
     metrics_cards = []
     for model, metrics in model_metrics.items():
         card = model_card(model, metrics)
         metrics_cards.append(card)
-    model_graph_paths = artifacts['graphs']
-    graph_imgs = []
-    for model, graph_paths in model_graph_paths.items():
-        model_graphs = [img_path_to_base64(path) for path in graph_paths]
-        model_graph_imgs = []
-        for graph in model_graphs:
-            graph_img = html.Img(
-                src='data:image/png;base64,{}'.format(graph)
-            )
-            model_graph_imgs.append(graph_img)
-        graph_imgs.extend(model_graph_imgs)
+    children.extend(metrics_cards)
+    # graphs
+    if interactive_graph:
+        for target, data_dict in artifacts['data'].items():
+            y_pred = data_dict['y_pred']
+            y_true = data_dict['y_test']
+            samples = data_dict['samples_test']
+            graph = pred_v_actual_graph(samples, target, y_pred, y_true)
+            # TODO: use plotly to generate pred v actual graph
+            children.append(graph)
+
+    else:
+        # graphs as imgs
+        model_graph_paths = artifacts['graphs']
+        graph_imgs = []
+        for model, graph_paths in model_graph_paths.items():
+            model_graphs = [img_path_to_base64(path) for path in graph_paths]
+            model_graph_imgs = []
+            for graph in model_graphs:
+                graph_img = html.Img(
+                    src='data:image/png;base64,{}'.format(graph),
+                )
+                model_graph_imgs.append(graph_img)
+            graph_imgs.extend(model_graph_imgs)
+        children.extend(graph_imgs)
     return html.Div(
-        children=[
-            html.H5('Performance'),
-            *metrics_cards,
-            *graph_imgs
-        ]
+        children=children
     )
 
 

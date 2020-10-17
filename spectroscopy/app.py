@@ -31,9 +31,9 @@ from spectroscopy.app_utils import (
 from spectroscopy.data import INFERENCE_RESULTS_FILENAME, SpectroscopyDataMonitor, EXTRACTED_DATA_FILENAME, UnmatchedFilesException
 from spectroscopy.model import train_models, load_all_performance_artifacts
 ## NEWEST TODO
+# TODO: add ability to view graphs of spectroscopy scans
 # TODO: make script to correct file namings
 # TODO: make performance section a table
-# TODO: add performance graphs
 # TODO: browser freezing on load-up of data (paging?)
 # TODO: add ability to view scans (select scans, view all scans on SAME GRAPH)
 # TODO: display model parameters
@@ -170,6 +170,7 @@ def on_train_models(n_clicks, training_targets):
         #  model_metrics = load_all_model_metrics(model_dir=get_model_dir())
         artifacts = load_all_performance_artifacts(model_dir=get_model_dir())
     return model_performance_section(artifacts)
+
 
 @app.callback(
     output=Output('inference-table-wrapper', 'children'),

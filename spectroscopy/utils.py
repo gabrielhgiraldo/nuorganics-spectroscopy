@@ -1,7 +1,6 @@
 import logging
 
 import matplotlib.pyplot as plt
-import plotly.express as px
 
 import numpy as np
 # from sklearn.impute import SimpleImputer
@@ -48,13 +47,6 @@ def plot_pred_v_actual(y_true, y_pred, save=True, save_dir=None, model_target=No
     plt.ylabel(f'Predicted {model_target}')
     plt.xlim(0, max_value)
     plt.ylim(0, max_value)
-    # fig = px.scatter(
-    #     x=y_true,
-    #     y=y_pred,
-    #     title='Ammonia-N Prediction from Machine Learning Spectroscopy Inference Model',
-    #     alpha=0.5,
-    # )
-    # fig.add_trace()
     if save:
         if save_dir is not None:
             save_path = save_dir/save_filename

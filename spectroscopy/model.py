@@ -22,6 +22,7 @@ from sklearn.preprocessing import OneHotEncoder
 
 from spectroscopy.data import (
     EXTRACTED_REFERENCE_FILENAME,
+    get_sample_ids,
     load_cached_extracted_data,
     AVAILABLE_TARGETS
 )
@@ -34,6 +35,7 @@ MODEL_DIR = Path('bin/model/')
 MODEL_FILENAME = 'model.pkl'
 MODEL_METRICS_FILENAME = 'scores.json'
 MODEL_PRED_ACT_GRAPH_FILENAME = 'pred_v_actual.png'
+MODEL_DATA_DICT_FILENAME = 'data_dict.pkl'
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -133,11 +135,14 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
         data = load_cached_extracted_data(EXTRACTED_REFERENCE_FILENAME, training_data_path)
     # TODO: make this an sklearn transformer
     X = transform_data(data)
+    # temporarily add index
+    X ['index'] = get_sample_ids(data, unique=False)
     # TODO: have feature extraction occur in model pipeline
     # TODO: add ability to include different experiments in one training run
     artifacts= {
         'metrics':{},
-        'graphs':{}
+        'graphs':{},
+        'data':{}
     }
     models = {}
     for target in targets:
@@ -152,8 +157,12 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
         logger.info(f'total samples:{len(data)} training on:{len(X_train)} testing on {len(X_test)}')
         # TODO: allow for different architectures for each model
         model = define_model()
+        # remove the index
+        X_test_index = X_test.pop('index')
+        X_train_index = X_train.pop('index')
         model.fit(X_train, y_train)
         models[target] = model
+        # save model
         target_model_dir.mkdir(parents=True, exist_ok=True)
         with open(target_model_dir / MODEL_FILENAME, 'wb') as f:
             pickle.dump(model, f)
@@ -162,17 +171,31 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
             scores = score_model(model, X_train, y_train, X_test, y_test)
             logger.info(pprint(scores))
             logger.info('saving fit graph')
+            y_pred = model.predict(X_test)
+            # create predicted vs actual graph & save img version
             _, fig_save_path = plot_pred_v_actual(
                 model_target=target,
                 y_true=y_test,
-                y_pred=model.predict(X_test),
+                y_pred=y_pred,
                 save_dir = target_model_dir
             )
             # TODO: use database or experiment handling framework for metrics storage
+            # save metrics
             with open(target_model_dir/MODEL_METRICS_FILENAME, 'w') as f:
                 json.dump(scores, f)
+            # get data associated with index
+            X_test['index'] = X_test_index
+            X_train['index'] = X_train_index
+            # data_index = get_sample_ids(data, unique=False)
+            # train_samples = data[data_index==X_train_index]
+            # test_samples = data[data_index==X_test_index]
+            # save data
+            data_dict = {'y_pred':y_pred, 'y_test':y_test, 'samples_test':X_test}
+            with open(target_model_dir/MODEL_DATA_DICT_FILENAME, 'wb') as f:
+                pickle.dump(data_dict, f)
             artifacts['metrics'][target] = scores
             artifacts['graphs'][target] = [fig_save_path]
+            artifacts['data'][target] = data_dict
     if evaluate:
         return artifacts, models
     return models
@@ -213,11 +236,19 @@ def get_model_graph_paths(model_target, model_dir=None):
 #     return scores
 
 
+def load_model_data(target, model_dir):
+    with open(model_dir/target/MODEL_DATA_DICT_FILENAME, 'rb') as f:
+        data_dict = pickle.load(f)
+    return data_dict
+
+
+
 def load_all_performance_artifacts(model_dir=None):
     """load all performance artifacts in the model directory (metrics, graphs, etc.)"""
     artifacts = {
         'metrics':{},
-        'graphs':{}
+        'graphs':{},
+        'data':{}
     }
     for target in AVAILABLE_TARGETS:
         try:
@@ -225,11 +256,12 @@ def load_all_performance_artifacts(model_dir=None):
             # get saved model graph paths
             # model_graphs = load_model_graphs(target, model_dir)
             model_graph_paths = get_model_graph_paths(target, model_dir)
+            model_data_dict = load_model_data(target, model_dir)
             
         except FileNotFoundError as e:
             logger.warning(e)
         else:
             artifacts['metrics'][target] = model_metrics
             artifacts['graphs'][target] = model_graph_paths
-            # artifacts['graphs'][target] = model_graphs
+            artifacts['data'][target] = model_data_dict
     return artifacts
