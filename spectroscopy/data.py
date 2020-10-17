@@ -40,6 +40,7 @@ EXTRACTED_DATA_FILENAME='.extracted_files.pkl'
 EXTRACTED_REFERENCE_FILENAME = '.extracted_filepaths.pkl' # file for caching extracted filepaths
 
 SAMPLE_IDENTIFIER_COLUMNS = ['sample_name', 'sample_date']
+SCAN_IDENTIFIER_COLUMNS = SAMPLE_IDENTIFIER_COLUMNS + ['process_method', 'run_number']
 
 DEFAULT_MAX_WORKERS = 1
 

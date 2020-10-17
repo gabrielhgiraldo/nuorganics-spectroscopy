@@ -12,7 +12,7 @@ import plotly.graph_objects as go
 
 
 from spectroscopy.app_utils import get_user_settings, img_path_to_base64
-from spectroscopy.data import AVAILABLE_TARGETS, SCAN_FILE_DATETIME_FORMAT
+from spectroscopy.data import AVAILABLE_TARGETS, SCAN_IDENTIFIER_COLUMNS, SCAN_FILE_DATETIME_FORMAT
 from spectroscopy.utils import get_wavelength_columns
 
 ENABLE_UI_UPLOAD = False
@@ -215,6 +215,7 @@ def trained_models_section():
 def pred_v_actual_graph(samples, target, y_pred, y_true):
     max_value = y_true.max()
     max_value += max_value/10
+    
     fig = px.scatter(
         data_frame=samples,
         x=y_true,
@@ -223,14 +224,15 @@ def pred_v_actual_graph(samples, target, y_pred, y_true):
         opacity=0.5,
         range_x=[0, max_value],
         range_y=[0, max_value],
-        width=800,
+        width=800+200,
         height=800,
         labels={
             'x':f'True {target}',
             'y':f'Predicted {target}',
         },
-        # color='sample_name ',
-        hover_data=['index']
+        color='sample_name',
+        category_orders={'sample_name':sorted(samples['sample_name'].unique())},
+        hover_data=SCAN_IDENTIFIER_COLUMNS
     )
     # add ideal fit line
     x = np.round(np.linspace(0, max_value, len(y_true)),2)
@@ -297,9 +299,8 @@ def model_performance_section(artifacts, interactive_graph=True):
         for target, data_dict in artifacts['data'].items():
             y_pred = data_dict['y_pred']
             y_true = data_dict['y_test']
-            samples = data_dict['samples_test']
+            samples = data_dict['test_samples']
             graph = pred_v_actual_graph(samples, target, y_pred, y_true)
-            # TODO: use plotly to generate pred v actual graph
             children.append(graph)
 
     else:

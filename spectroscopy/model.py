@@ -135,8 +135,6 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
         data = load_cached_extracted_data(EXTRACTED_REFERENCE_FILENAME, training_data_path)
     # TODO: make this an sklearn transformer
     X = transform_data(data)
-    # temporarily add index
-    X ['index'] = get_sample_ids(data, unique=False)
     # TODO: have feature extraction occur in model pipeline
     # TODO: add ability to include different experiments in one training run
     artifacts= {
@@ -158,8 +156,6 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
         # TODO: allow for different architectures for each model
         model = define_model()
         # remove the index
-        X_test_index = X_test.pop('index')
-        X_train_index = X_train.pop('index')
         model.fit(X_train, y_train)
         models[target] = model
         # save model
@@ -184,13 +180,9 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
             with open(target_model_dir/MODEL_METRICS_FILENAME, 'w') as f:
                 json.dump(scores, f)
             # get data associated with index
-            X_test['index'] = X_test_index
-            X_train['index'] = X_train_index
-            # data_index = get_sample_ids(data, unique=False)
-            # train_samples = data[data_index==X_train_index]
-            # test_samples = data[data_index==X_test_index]
+            test_samples = data.iloc[X_test.index]
             # save data
-            data_dict = {'y_pred':y_pred, 'y_test':y_test, 'samples_test':X_test}
+            data_dict = {'y_pred':y_pred, 'y_test':y_test, 'test_samples':test_samples}
             with open(target_model_dir/MODEL_DATA_DICT_FILENAME, 'wb') as f:
                 pickle.dump(data_dict, f)
             artifacts['metrics'][target] = scores
