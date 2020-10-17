@@ -39,7 +39,7 @@ def render_layout():
                 dcc.Tab(label='Settings', value='settings-tab'),
                 dcc.Tab(label='Training', value='training-tab'),
                 dcc.Tab(label='Inference', value='inference-tab'),
-                dcc.Tab(label='Analysis', value='analysis-tab')
+                # dcc.Tab(label='Analysis', value='analysis-tab')
             ]),
         html.Div(id='tab-content', className='container')
     ])

@@ -1,6 +1,5 @@
 import logging
 import os
-from tests.test_data import monitor
 from threading import Timer
 import webbrowser
 
