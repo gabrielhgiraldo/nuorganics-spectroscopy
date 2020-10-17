@@ -451,9 +451,9 @@ class SpectroscopyDataMonitor:
         # check if the folder is empty of relevant files
         if len(current_filepaths) <= 0:
             if len(self.extracted_filepaths) > 0:
+                self.set_extracted_data(pd.DataFrame())
+                self.extracted_filepaths = set()
                 has_changed = True
-            self.set_extracted_data(pd.DataFrame())
-            self.extracted_filepaths = set()
             self.syncing = False
             return self.extracted_data, has_changed
         # remove any files that were deleted
