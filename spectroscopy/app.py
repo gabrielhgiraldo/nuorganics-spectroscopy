@@ -31,10 +31,10 @@ from spectroscopy.data import INFERENCE_RESULTS_FILENAME, SpectroscopyDataMonito
 from spectroscopy.model import train_models, load_all_performance_artifacts
 ## NEWEST TODO
 # TODO: add ability to view graphs of spectroscopy scans
-# TODO: make script to correct file namings
-# TODO: make performance section a table
-# TODO: browser freezing on load-up of data (paging?)
 # TODO: add ability to view scans (select scans, view all scans on SAME GRAPH)
+
+# TODO: make script to correct file namings
+# TODO: browser freezing on load-up of data (paging?)
 # TODO: display model parameters
 # TODO: give ability to choose which columns to include in extraction from lab report, etc.
 # TODO: add ability to configure included model parameters
@@ -114,21 +114,6 @@ def on_save_settings(n_clicks, *args):
         raise PreventUpdate       
 
 
-# #upload data callback
-# @app.callback(
-#     output=Output('training-table-wrapper', 'children'),
-#     inputs=[Input('upload-training', 'contents')],
-#     state=[State('upload-training', 'filename')]
-# )
-# def update_training_data(contents, filenames):
-#     if contents is not None and filenames is not None:
-#         return [model_data_table(upload_training_data(contents, filenames), 'training')]
-#     else:
-#         try:
-#             data, extracted_paths = load_training_data(skip_paths=extracted_paths)
-#             return [model_data_table(data, 'training')]
-#         except FileNotFoundError:
-#             raise PreventUpdate
 @app.callback(
     output=Output('training-table-wrapper', 'children'),
     inputs=[Input('training-data-sync-interval','n_intervals')]
@@ -153,9 +138,6 @@ def on_training_data_sync(num_training_syncs):
     state=[State('training-target-selection', 'value')]
 )
 def on_train_models(n_clicks, training_targets):
-    # TODO: get parameters for specific targets
-    # TODO: get training data for specific targets
-    # TODO: train only on a subset of the data based on the table state
     if n_clicks:
         model_dir = get_model_dir()
         artifacts, models = train_models(
@@ -163,10 +145,7 @@ def on_train_models(n_clicks, training_targets):
             data=training_data_monitor.extracted_data,
             model_dir=model_dir
         )
-        # predict on test data and add it to the testing data section for exportation
-        # generate testing data section
     else:
-        #  model_metrics = load_all_model_metrics(model_dir=get_model_dir())
         artifacts = load_all_performance_artifacts(model_dir=get_model_dir())
     return model_performance_section(artifacts)
 
@@ -179,8 +158,6 @@ def on_train_models(n_clicks, training_targets):
            State('inference-target-selection','value')]
 )
 def on_inference(inference_clicks, contents, filenames, inference_targets):
-    # TODO: determine why inference is not outputting correctly
-    # TODO: get trigger id and determine that way
     ctx = dash.callback_context
     changed_id = ctx.triggered[0]['prop_id'].split('.')[0]
     if changed_id == 'run-inference' and inference_clicks and inference_targets:
@@ -196,34 +173,6 @@ def on_inference(inference_clicks, contents, filenames, inference_targets):
             raise PreventUpdate
 
     return model_data_table(inference_data_monitor.extracted_data, 'inference')
-
-
-# TODO: figure out how to select certain rows for export
-# TODO: figure out how to select certains rows for inference?
-# callback for syncing datatable data with storage
-# @app.callback(
-#     output=Output({"type":'total-samples', "index":MATCH},'children'),
-#     inputs=[Input({"type":'data-table',"index":MATCH},'data')],
-#     state=[State({"type":'data-table',"index":MATCH},'id')],
-#     prevent_initial_call=True
-# )
-# def on_data_change(data, table_id):
-#     if data is None:
-#         raise PreventUpdate
-#     tag = table_id['index']
-#     # save data to 'tag' associated location
-#     if tag == 'training':
-#         # TODO: trigger confirmation?
-#         training_data_path = get_training_data_path()
-#         # pd.DataFrame(data).to_csv(training_data_path/EXTRACTED_DATA_FILENAME, index=False)
-#     elif tag == 'inference':
-#         inference_data_path = get_inference_data_path()
-#         # pd.DataFrame(data).to_csv(inference_data_path/INFERENCE_RESULTS_FILENAME, index=False)
-#     else:
-#         raise PreventUpdate
-
-#     return f'total samples: {len(data)}'
-
 
 
 def _on_refresh():
