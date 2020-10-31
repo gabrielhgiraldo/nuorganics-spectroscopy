@@ -1,5 +1,6 @@
 import logging
 import os
+from spectroscopy.utils import get_wavelength_columns
 from threading import Timer
 import webbrowser
 
@@ -8,6 +9,7 @@ from dash.exceptions import PreventUpdate
 from dash.dependencies import Input, MATCH, Output, State
 import matplotlib
 matplotlib.use('agg')
+import pandas as pd
 
 
 from spectroscopy.app_layout import (
@@ -16,7 +18,7 @@ from spectroscopy.app_layout import (
     render_layout,
     settings_content,
     training_content,
-    model_data_table,
+    model_data_table, transmittance_graph,
 )
 from spectroscopy.app_utils import (
     get_inference_data_path, 
@@ -60,7 +62,10 @@ inference_data_monitor = SpectroscopyDataMonitor(
     watch_directory=get_inference_data_path(),
     extracted_data_filename=INFERENCE_RESULTS_FILENAME
 )
-monitors = [training_data_monitor, inference_data_monitor]
+monitors = {
+    'training':training_data_monitor,
+    'inference': inference_data_monitor
+}
 
 def get_triggered_id():
     ctx = dash.callback_context
@@ -174,9 +179,24 @@ def on_inference(inference_clicks, contents, filenames, inference_targets):
 
     return model_data_table(inference_data_monitor.extracted_data, 'inference')
 
+@app.callback(
+    output=Output({'type':'scan-viewer', 'index':MATCH}, 'children'),
+    inputs=[Input({'type':'view-scans', 'index':MATCH}, 'n_clicks')],
+    state=(
+        State({'type':'data-table','index':MATCH}, 'derived_virtual_data'),
+        State({'type':'data-table','index':MATCH}, 'derived_virtual_selected_rows'),
+    )
+)
+def on_view_scans(scan_clicks, data, selected_row_indices):
+    data = pd.DataFrame(data).iloc[selected_row_indices]
+    return transmittance_graph(data)
+
+
+# TODO: add on_filter for datatable to update total samples
+
 
 def _on_refresh():
-    for monitor in monitors:
+    for monitor in monitors.values():
         monitor.sync_data()
     return render_layout()
 

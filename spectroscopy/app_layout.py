@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 from pandas.api.types import is_datetime64_any_dtype as is_datetime, is_numeric_dtype
 import plotly.express as px
+import plotly.graph_objects as go
+
 
 
 
@@ -114,10 +116,14 @@ def model_data_table(data, tag):
             fixed_rows={'headers': True},
             # fixed_columns={'headers':True},
             sort_action='native',
+            # editable=True,
+            filter_action="native",
+            sort_mode="multi",
             export_format='xlsx',
             persistence=True,
             # row_deletable=True,
             row_selectable='multi',
+            selected_rows=[],
             # TODO: add option to include wavelength columns in export
             hidden_columns=get_wavelength_columns(data),
             css=[{"selector": ".show-hide", "rule": "display: none"}],
@@ -176,6 +182,7 @@ def model_data_section(tag, sync_interval=60000, enable_upload=True):
             html.H4(f'{tag} Data'),
             html.Small(f'data to be used for {tag} models'),
             dcc.Interval(id=f'{tag}-data-sync-interval', interval=sync_interval),
+            dcc.Loading(id={'type':'scan-viewer','index':tag}),
             dcc.Upload(
                 id=f'upload-{tag}',
                 multiple=True,
@@ -193,7 +200,7 @@ def model_data_section(tag, sync_interval=60000, enable_upload=True):
             ),
             html.Button(
                 'view scans',
-                id='view-scans',
+                id={'type':'view-scans', 'index':tag},
                 style={
                     'float':'left',
                     'zIndex':1,
@@ -355,3 +362,19 @@ def inference_content(sync_interval):
         html.Button('run inference', id='run-inference', n_clicks=0)
     ])
 
+
+def transmittance_graph(data):
+    wavelengths = get_wavelength_columns(data)
+    wavelength_data = data[wavelengths]
+    fig = go.Figure()
+    for i in wavelength_data.index:
+        x = [float(wavelength) for wavelength in wavelengths]
+        y = wavelength_data.loc[i].to_list()
+        fig.add_trace(
+            go.Line(
+                x=x,
+                y=y,
+                name=str(data.loc[i]['index'])
+            )
+        )
+    return dcc.Graph(figure=fig)
