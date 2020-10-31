@@ -117,7 +117,7 @@ def model_data_table(data, tag):
             export_format='xlsx',
             persistence=True,
             # row_deletable=True,
-            # row_selectable=True,
+            row_selectable='multi',
             # TODO: add option to include wavelength columns in export
             hidden_columns=get_wavelength_columns(data),
             css=[{"selector": ".show-hide", "rule": "display: none"}],
@@ -186,10 +186,19 @@ def model_data_section(tag, sync_interval=60000, enable_upload=True):
                 ],
                 style={
                     'float':'left',
-                    'z-index':1,
+                    'zIndex':1,
                     'position':'relative',
                     'visibility':'visible' if enable_upload else 'hidden'
                 }
+            ),
+            html.Button(
+                'view scans',
+                id='view-scans',
+                style={
+                    'float':'left',
+                    'zIndex':1,
+                    'position':'relative',
+                }            
             ),
             dcc.Loading(id=f'{tag}-table-wrapper'),
         ],
@@ -221,7 +230,7 @@ def pred_v_actual_graph(samples, target, y_pred, y_true):
         x=y_true,
         y=y_pred,
         title=f'{target} predicted vs actual',
-        opacity=0.5,
+        opacity=0.7,
         range_x=[0, max_value],
         range_y=[0, max_value],
         width=800+200,
@@ -230,7 +239,7 @@ def pred_v_actual_graph(samples, target, y_pred, y_true):
             'x':f'True {target}',
             'y':f'Predicted {target}',
         },
-        color='sample_name',
+        # color='sample_name',
         # color='process_method',
         color_discrete_sequence=px.colors.qualitative.Vivid,
         category_orders={'sample_name':sorted(samples['sample_name'].unique())},
