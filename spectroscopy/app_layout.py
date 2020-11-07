@@ -48,7 +48,6 @@ def render_layout(training_monitor, inference_monitor):
                 ),
                 # dcc.Tab(label='Analysis', value='analysis-tab')
             ]),
-        html.Div(id='tab-content', className='container')
     ])
 
 ## SETTINGS
@@ -364,20 +363,24 @@ def training_content(monitor, sync_interval=None):
             ),
             trained_models_section(),
         ],
+        className='container'
     )
 
 
 ## INFERENCE
 def inference_content(monitor, sync_interval=None):
-    return html.Div([
-        model_data_section('inference',
-            monitor=monitor,
-            sync_interval=sync_interval,
-            enable_upload=False
-        ),
-        target_selector('inference'),
-        html.Button('run inference', id='run-inference', n_clicks=0)
-    ])
+    return html.Div(
+        children=[
+            model_data_section('inference',
+                monitor=monitor,
+                sync_interval=sync_interval,
+                enable_upload=False
+            ),
+            target_selector('inference'),
+            html.Button('run inference', id='run-inference', n_clicks=0)
+        ],
+        className='container'
+    )
 
 
 def transmittance_graph(data):

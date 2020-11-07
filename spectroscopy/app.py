@@ -13,11 +13,8 @@ import pandas as pd
 
 
 from spectroscopy.app_layout import (
-    inference_content,
     model_performance_section,
     render_layout,
-    settings_content,
-    training_content,
     model_data_table, transmittance_graph,
 )
 from spectroscopy.app_utils import (
@@ -47,8 +44,6 @@ app = dash.Dash(__name__,
     suppress_callback_exceptions=True,
 )
 app.logger.setLevel(logging.INFO)
-# create folder directories
-get_training_data_path().mkdir(parents=True, exist_ok=True)
 
 # initialize monitor for training data
 training_data_monitor = SpectroscopyDataMonitor(
@@ -181,6 +176,10 @@ def on_view_scans(scan_clicks, data, selected_row_indices):
 
 
 def _on_refresh():
+    # create folder directories
+    get_training_data_path().mkdir(parents=True, exist_ok=True)
+    get_inference_data_path().mkdir(parents=True, exist_ok=True)
+    get_model_dir().mkdir(parents=True, exist_ok=True)
     return render_layout(
         training_monitor=training_data_monitor,
         inference_monitor=inference_data_monitor
