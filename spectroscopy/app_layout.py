@@ -14,22 +14,21 @@ import plotly.graph_objects as go
 
 
 from spectroscopy.app_utils import get_user_settings, img_path_to_base64
-from spectroscopy.data import AVAILABLE_TARGETS, SCAN_IDENTIFIER_COLUMNS, SCAN_FILE_DATETIME_FORMAT
+from spectroscopy.data import AVAILABLE_TARGETS, INFERENCE_RESULTS_FILENAME, SCAN_IDENTIFIER_COLUMNS, SCAN_FILE_DATETIME_FORMAT
 from spectroscopy.utils import get_wavelength_columns
 
-ENABLE_UI_UPLOAD = False
+TRAINING_SYNC_INTERVAL = 60000
+INFERENCE_SYNC_INTERVAL = 60000
 METRIC_PRECISION = 2
 TABLE_NUMERIC_PRECISION = 2
 TARGET_OPTIONS = [{'label':target, 'value':target} for target in AVAILABLE_TARGETS]
 logger = logging.getLogger(__name__)
 
 # TODO: fix certain columns on the left
-# TODO: include wavelength columns in export
-# TODO: split layout amongst tab sections?
 # TODO: add loading messages to loaders
 
 ## GENERAL
-def render_layout():
+def render_layout(training_monitor, inference_monitor):
     # create data folder and parents
     return html.Div([
         html.H3('Nuorganics Spectroscopy Modeling'),
@@ -38,9 +37,15 @@ def render_layout():
             value='inference-tab',
             persistence=True,
             children=[
-                dcc.Tab(label='Settings', value='settings-tab'),
-                dcc.Tab(label='Training', value='training-tab'),
-                dcc.Tab(label='Inference', value='inference-tab'),
+                dcc.Tab(label='Settings', value='settings-tab',
+                    children=settings_content()
+                ),
+                dcc.Tab(label='Training', value='training-tab',
+                    children=training_content(training_monitor)    
+                ),
+                dcc.Tab(label='Inference', value='inference-tab',
+                    children=inference_content(inference_monitor)
+                ),
                 # dcc.Tab(label='Analysis', value='analysis-tab')
             ]),
         html.Div(id='tab-content', className='container')
@@ -176,12 +181,11 @@ def target_selector(tag):
 # TODO: create custom component for this
 # TODO: make these collapsible 
 # TODO: accept only certaint tpyes of files as variable
-def model_data_section(tag, sync_interval=60000, enable_upload=True):
-    return html.Div(
-        children=[
-            html.H4(f'{tag} Data'),
-            html.Small(f'data to be used for {tag} models'),
-            dcc.Interval(id=f'{tag}-data-sync-interval', interval=sync_interval),
+def model_data_section(tag, monitor, sync_interval=None, enable_upload=True):
+    monitor.sync_data()
+    children = [
+            html.H4(f'{tag} Data'.title()),
+            html.Small(f'data used to {tag} models'),
             dcc.Loading(id={'type':'scan-viewer','index':tag}),
             dcc.Upload(
                 id=f'upload-{tag}',
@@ -195,7 +199,7 @@ def model_data_section(tag, sync_interval=60000, enable_upload=True):
                     'float':'left',
                     'zIndex':1,
                     'position':'relative',
-                    'visibility':'visible' if enable_upload else 'hidden'
+                    'display':'block' if enable_upload else 'none'
                 }
             ),
             html.Button(
@@ -207,8 +211,19 @@ def model_data_section(tag, sync_interval=60000, enable_upload=True):
                     'position':'relative',
                 }            
             ),
-            dcc.Loading(id=f'{tag}-table-wrapper'),
-        ],
+            dcc.Loading(id=f'{tag}-table-wrapper',
+                children=model_data_table(monitor.extracted_data, tag)
+            ),
+    ]
+    if sync_interval is not None:
+        children.append(
+            dcc.Interval(
+                id=f'{tag}-data-sync-interval',
+                interval=sync_interval
+            ),
+        )
+    return html.Div(
+        children=children,
         className="row"
     )
 
@@ -217,7 +232,7 @@ def trained_models_section():
     return html.Div(
         children=[
             html.H4('Models'),
-            target_selector('training'),
+            target_selector('train'),
             html.Button(
                 'train model(s)',
                 id='train-models',
@@ -249,7 +264,6 @@ def pred_v_actual_graph(samples, target, y_pred, y_true):
         # color='sample_name',
         # color='process_method',
         color_discrete_sequence=px.colors.qualitative.Vivid,
-        category_orders={'sample_name':sorted(samples['sample_name'].unique())},
         hover_data=SCAN_IDENTIFIER_COLUMNS
     )
     # add ideal fit line
@@ -259,7 +273,6 @@ def pred_v_actual_graph(samples, target, y_pred, y_true):
         y=x,
     ).data[0])
     return dcc.Graph(figure=fig)
-    # fig.add_line()
 
 
 
@@ -341,13 +354,13 @@ def model_performance_section(artifacts, interactive_graph=True):
 
 
 # TODO: add testing data section and results
-def training_content(sync_interval):
+def training_content(monitor, sync_interval=None):
     return html.Div(
         children=[
-            dcc.Loading(id='training-feedback'),
-            model_data_section('training',
+            model_data_section('train',
                 enable_upload=False,
-                sync_interval=sync_interval
+                sync_interval=sync_interval,
+                monitor=monitor
             ),
             trained_models_section(),
         ],
@@ -355,9 +368,13 @@ def training_content(sync_interval):
 
 
 ## INFERENCE
-def inference_content(sync_interval):
+def inference_content(monitor, sync_interval=None):
     return html.Div([
-        model_data_section('inference', sync_interval=sync_interval),
+        model_data_section('inference',
+            monitor=monitor,
+            sync_interval=sync_interval,
+            enable_upload=False
+        ),
         target_selector('inference'),
         html.Button('run inference', id='run-inference', n_clicks=0)
     ])
@@ -372,9 +389,32 @@ def transmittance_graph(data):
         y = wavelength_data.loc[i].to_list()
         fig.add_trace(
             go.Line(
+                # data_frame=data.loc[i],
                 x=x,
                 y=y,
-                name=str(data.loc[i]['index'])
+                name=str(data.loc[i]['index']),
+                # name='index',
+                
+                # hover_data=['index']
+                # hover_name='index'
+                # hover_name=str(data.loc[i]['index']),
+                # hover_data=str(data.loc[i]['index'])
             )
         )
+    fig.update_layout(
+        # title="Transmittance",
+        xaxis_title="Wavelength",
+        yaxis_title="Transmittance",
+        legend_title="sample",
+        showlegend=True,
+        legend=dict(
+            y=1,
+            x=1
+        ),
+        # font=dict(
+        #     family="Courier New, monospace",
+        #     size=18,
+        #     color="RebeccaPurple"
+        # )
+    )
     return dcc.Graph(figure=fig)

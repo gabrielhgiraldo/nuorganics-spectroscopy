@@ -40,8 +40,7 @@ from spectroscopy.model import train_models, load_all_performance_artifacts
 # TODO: display model parameters
 # TODO: give ability to choose which columns to include in extraction from lab report, etc.
 # TODO: add ability to configure included model parameters
-TRAINING_SYNC_INTERVAL = 60000
-INFERENCE_SYNC_INTERVAL = 60000
+
 
 app = dash.Dash(__name__,
     title='Nuorganics Spectroscopy',
@@ -74,20 +73,6 @@ def get_triggered_id():
     else:
         return ctx.triggered[0]['prop_id'].split('.')[0]
 
-# tab callback
-@app.callback(
-    output=Output('tab-content', 'children'),
-    inputs=[Input('tabs','value')])
-def render_content(tab):
-    if tab == 'settings-tab':
-        return settings_content()
-    elif tab == 'training-tab':
-        return training_content(TRAINING_SYNC_INTERVAL)
-    elif tab == 'inference-tab':
-        return inference_content(INFERENCE_SYNC_INTERVAL)
-    else:
-        return ['no content available for tab value']
-
 
 # save settings callback
 def generate_settings_callback_states():
@@ -119,28 +104,28 @@ def on_save_settings(n_clicks, *args):
         raise PreventUpdate       
 
 
-@app.callback(
-    output=Output('training-table-wrapper', 'children'),
-    inputs=[Input('training-data-sync-interval','n_intervals')]
-)
-def on_training_data_sync(num_training_syncs):
-    app.logger.info('syncing data')
-    # check if any of the files have changed and extract any that haven't
-    if training_data_monitor.syncing:
-        app.logger.warning(f'data still syncing, skipping sync')
-        return None
-    if num_training_syncs:
-        _, has_changed = training_data_monitor.sync_data()
-        if not has_changed:
-            raise PreventUpdate
-    return [model_data_table(training_data_monitor.extracted_data, 'training')]
+# @app.callback(
+#     output=Output('train-table-wrapper', 'children'),
+#     inputs=[Input('train-data-sync-interval','n_intervals')]
+# )
+# def on_training_data_sync(num_training_syncs):
+#     app.logger.info('syncing data')
+#     # check if any of the files have changed and extract any that haven't
+#     if training_data_monitor.syncing:
+#         app.logger.warning(f'data still syncing, skipping sync')
+#         return None
+#     if num_training_syncs:
+#         _, has_changed = training_data_monitor.sync_data()
+#         if not has_changed:
+#             raise PreventUpdate
+#     return [model_data_table(training_data_monitor.extracted_data, 'train')]
 
 
 # train model callback
 @app.callback(
     output=Output('model-metrics-wrapper', 'children'),
     inputs=[Input('train-models', 'n_clicks')],
-    state=[State('training-target-selection', 'value')]
+    state=[State('train-target-selection', 'value')]
 )
 def on_train_models(n_clicks, training_targets):
     if n_clicks:
@@ -196,9 +181,10 @@ def on_view_scans(scan_clicks, data, selected_row_indices):
 
 
 def _on_refresh():
-    for monitor in monitors.values():
-        monitor.sync_data()
-    return render_layout()
+    return render_layout(
+        training_monitor=training_data_monitor,
+        inference_monitor=inference_data_monitor
+    )
 
 app.layout = _on_refresh
 

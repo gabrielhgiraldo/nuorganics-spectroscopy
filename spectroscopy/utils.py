@@ -56,6 +56,7 @@ def plot_pred_v_actual(y_true, y_pred, save=True, save_dir=None, model_target=No
         return fig, save_path
     return fig
 
+
 def plot_residuals(y_true, y_pred, save=True):
     plt.figure(figsize=(10,10))
     plt.scatter(y_true, y_true-y_pred)
