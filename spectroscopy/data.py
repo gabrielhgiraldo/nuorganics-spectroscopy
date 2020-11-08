@@ -307,7 +307,7 @@ def extract_data(data_path=DATA_DIR,
         # if there's groundtruth, join the groundtruth to the dataset
         unmatched_samples = get_unmatched_sample_ids(df_lr, df_trms)
         if len(unmatched_samples) > 0:
-            message = f'unable to match samples {unmatched_samples}'
+            message = f'unable to find lab reports for samples {unmatched_samples}'
             logger.warning(message)
             # TODO: only include the unmatched files here
             raise UnmatchedFilesException(message, trm_filepaths|lr_filepaths)
