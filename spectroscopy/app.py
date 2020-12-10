@@ -168,6 +168,8 @@ def on_inference(inference_clicks, contents, filenames, inference_targets):
     )
 )
 def on_view_scans(scan_clicks, data, selected_row_indices):
+    if selected_row_indices is None:
+        raise PreventUpdate
     data = pd.DataFrame(data).iloc[selected_row_indices]
     return transmittance_graph(data)
 

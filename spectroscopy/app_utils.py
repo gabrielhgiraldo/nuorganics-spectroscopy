@@ -9,8 +9,6 @@ import pandas as pd
 from spectroscopy.model import load_model, transform_data
 from spectroscopy.data import (
     AVAILABLE_TARGETS,
-    INFERENCE_RESULTS_FILENAME, UnmatchedFilesException,
-    extract_data,
 )
 USER_CONFIG_PATH = Path('config.ini')
 DEFAULT_USER_CONFIGS = {
