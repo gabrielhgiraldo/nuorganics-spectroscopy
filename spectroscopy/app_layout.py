@@ -241,15 +241,16 @@ def trained_models_section():
             dcc.Loading(id='model-metrics-wrapper')
         ],
     )
-# TODO: on hover, give sample information
+# TODO: fix graph labeling
 def pred_v_actual_graph(samples, target, y_pred, y_true):
     max_value = y_true.max()
     max_value += max_value/10
-    
+    samples['y_true'] = y_true
+    samples['y_pred'] = y_pred
     fig = px.scatter(
         data_frame=samples,
-        x=y_true,
-        y=y_pred,
+        x='y_true',
+        y='y_pred',
         title=f'{target} predicted vs actual',
         opacity=0.7,
         range_x=[0, max_value],
@@ -257,8 +258,8 @@ def pred_v_actual_graph(samples, target, y_pred, y_true):
         width=800+200,
         height=800,
         labels={
-            'x':f'True {target}',
-            'y':f'Predicted {target}',
+            'y_true':f'True {target}',
+            'y_pred':f'Predicted {target}',
         },
         # color='sample_name',
         # color='process_method',
@@ -332,7 +333,6 @@ def model_performance_section(artifacts, interactive_graph=True):
             samples = data_dict['test_samples']
             graph = pred_v_actual_graph(samples, target, y_pred, y_true)
             children.append(graph)
-
     else:
         # graphs as imgs
         model_graph_paths = artifacts['graphs']

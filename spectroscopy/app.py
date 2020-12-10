@@ -29,9 +29,10 @@ from spectroscopy.app_utils import (
 from spectroscopy.data import INFERENCE_RESULTS_FILENAME, SpectroscopyDataMonitor, EXTRACTED_DATA_FILENAME, UnmatchedFilesException
 from spectroscopy.model import train_models, load_all_performance_artifacts
 ## NEWEST TODO
-# TODO: add ability to view graphs of spectroscopy scans
-# TODO: add ability to view scans (select scans, view all scans on SAME GRAPH)
-
+# TODO: add matplotlib to dependencies
+# TODO: add pandas to dependencies
+# TODO: add sklearn to dependencies
+# TODO: allow ability to manage test set/ train-test split from UI or folders
 # TODO: make script to correct file namings
 # TODO: browser freezing on load-up of data (paging?)
 # TODO: display model parameters
