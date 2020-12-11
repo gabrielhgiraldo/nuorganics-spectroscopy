@@ -29,7 +29,7 @@ AVAILABLE_TARGETS = [
     SULFUR
 ]
 TRM_PATTERN = "*.TRM"
-LAB_REPORT_PATTERN = "Lab Report*.csv"
+LAB_REPORT_PATTERN = "Lab Report*"
 LAB_REPORT_COLUMNS = ['filename', *AVAILABLE_TARGETS]
 FILE_PATTERNS = {TRM_PATTERN, LAB_REPORT_PATTERN}
 SCAN_FILE_DATETIME_FORMAT = '%m-%d-%y'
@@ -63,7 +63,7 @@ def is_spect_file(filepath):
 
 
 def is_lab_report(filepath):
-    return filepath.name.startswith('Lab Report') and filepath.suffix.lower() == '.csv'
+    return filepath.name.startswith('Lab Report')
 
 
 def get_relevant_filepaths(data_dir=DATA_DIR, file_patterns=FILE_PATTERNS):
