@@ -124,7 +124,9 @@ def on_save_settings(n_clicks, *args):
     state=[State('train-target-selection', 'value')]
 )
 def on_train_models(n_clicks, training_targets):
-    if n_clicks:
+    ctx = dash.callback_context
+    changed_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    if changed_id == 'train-models':
         model_dir = get_model_dir()
         artifacts, models = train_models(
             targets=training_targets,
