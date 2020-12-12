@@ -165,7 +165,12 @@ def _extract_lab_report_filename_info(filename):
 
 
 def parse_lab_report(filepath) -> pd.DataFrame:
-    df = pd.read_csv(filepath)
+    if filepath.suffix == '.csv':
+        df = pd.read_csv(filepath)
+    elif filepath.suffix.startswith('.xls'):
+        df = pd.read_excel(filepath)
+    else:
+        raise ValueError('unsupported file ending.')
     df['filename'] = filepath.name
     sample_name, sample_date = _extract_lab_report_filename_info(filepath.name)
     df['sample_name'] = sample_name

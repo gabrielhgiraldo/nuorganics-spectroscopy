@@ -24,7 +24,7 @@ def monitor(test_data_dir):
     )
 
 def test_extract_data(test_data_dir):
-    extracted_data, extracted_filepaths = extract_data(test_data_dir, concurrent=True)
+    extracted_data, extracted_filepaths = extract_data(test_data_dir, concurrent=False)
     # assert that all TRM scan files were extracted correctly
     trm_filepaths = get_relevant_filepaths(test_data_dir, TRM_PATTERN)
     assert len(extracted_data.index) == len(trm_filepaths)
