@@ -1,10 +1,11 @@
-import json
+import json                 
 import logging
 from pathlib import Path
 # from spectroscopy.app_layout import predicted_vs_actual_graph
 
 # from lightgbm import LGBMRegressor
 import numpy as np
+import pandas as pd
 import pickle
 from pprint import pprint
 from sklearn.compose import ColumnTransformer
@@ -167,7 +168,7 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
             scores = score_model(model, X_train, y_train, X_test, y_test)
             logger.info(pprint(scores))
             logger.info('saving fit graph')
-            y_pred = model.predict(X_test)
+            y_pred = pd.Series(model.predict(X_test), index=X_test.index)
             # create predicted vs actual graph & save img version
             _, fig_save_path = plot_pred_v_actual(
                 model_target=target,
@@ -180,7 +181,7 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
             with open(target_model_dir/MODEL_METRICS_FILENAME, 'w') as f:
                 json.dump(scores, f)
             # get data associated with index
-            test_samples = data.iloc[X_test.index]
+            test_samples = data[data.index.isin(X_test.index)]
             # save data
             data_dict = {'y_pred':y_pred, 'y_test':y_test, 'test_samples':test_samples}
             with open(target_model_dir/MODEL_DATA_DICT_FILENAME, 'wb') as f:

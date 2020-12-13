@@ -241,7 +241,7 @@ def trained_models_section():
             dcc.Loading(id='model-metrics-wrapper')
         ],
     )
-# TODO: fix graph labeling
+
 def pred_v_actual_graph(samples, target, y_pred, y_true):
     max_value = y_true.max()
     max_value += max_value/10
@@ -252,7 +252,7 @@ def pred_v_actual_graph(samples, target, y_pred, y_true):
         x='y_true',
         y='y_pred',
         title=f'{target} predicted vs actual',
-        opacity=0.7,
+        opacity=0.5,
         range_x=[0, max_value],
         range_y=[0, max_value],
         width=800+200,
