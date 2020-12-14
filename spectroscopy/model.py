@@ -183,7 +183,11 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
             # get data associated with index
             test_samples = data[data.index.isin(X_test.index)]
             # save data
-            data_dict = {'y_pred':y_pred, 'y_test':y_test, 'test_samples':test_samples}
+            data_dict = {
+                'y_pred': y_pred,
+                'y_test': y_test, 
+                'test_samples': test_samples,
+            }
             with open(target_model_dir/MODEL_DATA_DICT_FILENAME, 'wb') as f:
                 pickle.dump(data_dict, f)
             artifacts['metrics'][target] = scores

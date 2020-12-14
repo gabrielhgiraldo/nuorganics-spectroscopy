@@ -133,4 +133,3 @@ def inference_models(model_tags, data):
         data[f'predicted_{model_tag}'] = model.predict(X)
         data[f'predicted_date'] = pd.to_datetime(datetime.now())
     return data
-

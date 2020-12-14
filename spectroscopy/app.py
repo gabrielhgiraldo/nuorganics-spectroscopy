@@ -119,7 +119,10 @@ def on_save_settings(n_clicks, *args):
 
 # train model callback
 @app.callback(
-    output=Output('model-metrics-wrapper', 'children'),
+    output=[
+        Output('model-metrics-wrapper', 'children'),
+        Output('train-table-wrapper','children')
+    ],
     inputs=[Input('train-models', 'n_clicks')],
     state=[State('train-target-selection', 'value')]
 )
@@ -133,9 +136,18 @@ def on_train_models(n_clicks, training_targets):
             data=training_data_monitor.extracted_data,
             model_dir=model_dir
         )
+        # add predicted values for test samples
+        for target, data_dict in artifacts['data'].items():
+            # get training and testing data
+            # mask = training_data_monitor.extracted_data.index.isin(data_dict['test_samples'].index)
+            # training_data_monitor.extracted_data[mask]['train_test'] = 'test'
+            # training_data_monitor.extracted_data[~mask]['train_test'] = 'train'
+            # add predicted values to the data
+            mask = training_data_monitor.extracted_data.index.isin(data_dict['y_pred'].index)
+            training_data_monitor.extracted_data.loc[mask, f'predicted_{target}'] = data_dict['y_pred']
     else:
         artifacts = load_all_performance_artifacts(model_dir=get_model_dir())
-    return model_performance_section(artifacts)
+    return model_performance_section(artifacts), model_data_table(training_data_monitor.extracted_data, 'train')
 
 
 @app.callback(
