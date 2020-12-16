@@ -83,8 +83,9 @@ def settings_content():
         className='container'
     )
 
-## TRAININING
+## TRAINING
 def model_data_table(data, tag):
+    # map data columns to table columns
     columns = []
     for column in data.columns:
         column_config = {
@@ -93,7 +94,6 @@ def model_data_table(data, tag):
         }
         # add formatting for numeric columns
         if is_numeric_dtype(data[column]):
-            # data[column] = data[column].round(TABLE_NUMERIC_PRECISION)
             column_config.update({
                 'type':'numeric',
                 'format':Format(
