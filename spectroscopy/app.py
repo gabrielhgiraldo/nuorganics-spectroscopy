@@ -1,6 +1,5 @@
 import logging
 import os
-from spectroscopy.utils import get_wavelength_columns
 from threading import Timer
 import webbrowser
 

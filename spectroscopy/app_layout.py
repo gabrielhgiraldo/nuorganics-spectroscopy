@@ -124,7 +124,7 @@ def model_data_table(data, tag):
             filter_action="native",
             sort_mode="multi",
             export_format='xlsx',
-            persistence=True,
+            persistence=False,
             # row_deletable=True,
             row_selectable='multi',
             selected_rows=[],
