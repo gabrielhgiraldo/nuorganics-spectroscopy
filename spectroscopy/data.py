@@ -42,6 +42,7 @@ EXTRACTED_REFERENCE_FILENAME = '.extracted_filepaths.pkl' # file for caching ext
 SAMPLE_IDENTIFIER_COLUMNS = ['sample_name', 'sample_date']
 SCAN_IDENTIFIER_COLUMNS = SAMPLE_IDENTIFIER_COLUMNS + ['run_number']
 
+COLUMN_ORDER = ['index', *SAMPLE_IDENTIFIER_COLUMNS, 'run_number']
 DEFAULT_MAX_WORKERS = 1
 
 logger = logging.getLogger(__name__)
@@ -285,6 +286,21 @@ def get_sample_matches(filepaths):
 def extract_data(data_path=DATA_DIR,
                 skip_paths=None, concurrent=True,
                 lab_report_columns=LAB_REPORT_COLUMNS):
+    """Extract and format spectroscopy data and matching ground truth from the given data directory.
+
+    Args:
+        data_path (path-like, optional): path to extract data from. Defaults to DATA_DIR.
+        skip_paths (set of path-like, optional): paths to skip extraction from. Defaults to None.
+        concurrent (boolean, optional): extract data concurrently. Defaults to True.
+        lab_report_columns (list of string, optional): columns to include from lab report.
+        Defaults to LAB_REPORT_COLUMNS.
+
+    Raises:
+        UnmatchedFilesException: some files are missing matches. (lab reports included with no scans, etc.)
+
+    Returns:
+        pd.DataFrame: extracted spectroscopy data and matching ground truth
+    """
     # handle transmittance
     df_trms, trm_filepaths = parse_trm_files(
         data_dir=data_path,
@@ -328,6 +344,20 @@ def extract_data(data_path=DATA_DIR,
 
 def parse_lab_reports(data_dir=None, skip_paths=None, concurrent=True,
                       max_workers=DEFAULT_MAX_WORKERS) -> pd.DataFrame:
+    """Parse ground truth data from lab reports.
+
+    Args:
+        data_dir (path-like, optional): path to lab directory containing lab reports. Defaults to None.
+        skip_paths (set of path-like, optional): paths to skip extraction. Defaults to None.
+        concurrent (bool, optional): extract concurrently. Defaults to True.
+        max_workers (int, optional): maximum number of concurrent workers. Defaults to DEFAULT_MAX_WORKERS.
+
+    Raises:
+        FileNotFoundError: no lab reports found at specified path.
+
+    Returns:
+        pd.DataFrame: lab report information.
+    """ 
     if data_dir is None:
         data_dir = DATA_DIR
     data_dir = Path(data_dir)
@@ -368,15 +398,14 @@ def _is_target_column(column_name):
 
 class SpectroscopyDataMonitor:
     def __init__(self, watch_directory, extracted_data_filename=EXTRACTED_DATA_FILENAME,
-                 column_order=None, cache=True):
+                 column_order=COLUMN_ORDER, cache=True):
         self.syncing = False
         self.watch_directory = watch_directory
         self.extracted_data_filename = extracted_data_filename
         self.extracted_data = pd.DataFrame()
         self.extracted_filepaths = set()
         self.cache = cache
-        if column_order is None:
-            self.column_order = ['index', *SAMPLE_IDENTIFIER_COLUMNS, 'run_number']
+        self.column_order = column_order
         self.load_data()
         # self.data_updated = True
         # set up file syncing

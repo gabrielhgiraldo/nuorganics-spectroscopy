@@ -144,6 +144,8 @@ def on_train_models(n_clicks, training_targets):
             # add predicted values to the data
             mask = training_data_monitor.extracted_data.index.isin(data_dict['y_pred'].index)
             training_data_monitor.extracted_data.loc[mask, f'predicted_{target}'] = data_dict['y_pred']
+        # trigger ordering
+        training_data_monitor.set_extracted_data(training_data_monitor.extracted_data)
     else:
         artifacts = load_all_performance_artifacts(model_dir=get_model_dir())
     return model_performance_section(artifacts), model_data_table(training_data_monitor.extracted_data, 'train')
