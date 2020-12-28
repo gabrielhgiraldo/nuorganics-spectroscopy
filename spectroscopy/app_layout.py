@@ -262,7 +262,6 @@ def pred_v_actual_graph(samples, target, y_pred, y_true):
             'y_pred':f'Predicted {target}',
         },
         # color='sample_name',
-        # color='process_method',
         color_discrete_sequence=px.colors.qualitative.Vivid,
         hover_data=SCAN_IDENTIFIER_COLUMNS
     )

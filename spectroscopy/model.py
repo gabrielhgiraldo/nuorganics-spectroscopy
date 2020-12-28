@@ -97,30 +97,18 @@ def define_model():
 #     )
     # return RandomForestRegressor(random_state=10, max_depth=20, n_estimators=100)
     # return LGBMRegressor()
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ('categorical', OneHotEncoder(handle_unknown='ignore'), ['process_method'])
-        ],
-        remainder='passthrough'
-    )
     return Pipeline(steps=[
-        ('preprocess', preprocessor),
         ('model', RandomForestRegressor(random_state=10))
     ])
 
 def get_features(df):
     feature_columns = get_wavelength_columns(df)
     feature_columns.append('integration_time')
-    feature_columns.append('process_method')
     return feature_columns
 
 # TODO: make this an sklearn transformer or series of transformers
 # TODO: enable different features for different models
 def transform_data(df):
-    df['process_method'].fillna('none', inplace=True)
-    df['process_method'] = df['process_method'].astype(str)
-    # df = df[df['process_method'].isin(['ground','wet'])]
-    # df = pd.concat([df, pd.get_dummies(df['process_method'])], axis=1)
     feature_columns = get_features(df)
     X = df[feature_columns]
     return X

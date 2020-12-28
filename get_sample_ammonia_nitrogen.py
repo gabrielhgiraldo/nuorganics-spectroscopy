@@ -28,10 +28,6 @@ except FileNotFoundError:
     os.system.exit()
 # TODO have feature extraction happen in model pipeline
 print('calculating samples Ammonia-N')
-df_samples['process_method'].fillna('none', inplace=True)
-df_samples['process_method'] = df_samples['process_method'].astype(str)
-# df = df[df['process_method'].isin(['ground','wet'])]
-df_samples = pd.concat([df_samples, pd.get_dummies(df_samples['process_method'])], axis=1)
 feature_columns = get_features(df_samples)
 X_samples = df_samples[feature_columns]
 ammonia_N = model.predict(X_samples)

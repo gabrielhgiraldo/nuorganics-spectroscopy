@@ -40,7 +40,7 @@ EXTRACTED_DATA_FILENAME='.extracted_files.pkl'
 EXTRACTED_REFERENCE_FILENAME = '.extracted_filepaths.pkl' # file for caching extracted filepaths
 
 SAMPLE_IDENTIFIER_COLUMNS = ['sample_name', 'sample_date']
-SCAN_IDENTIFIER_COLUMNS = SAMPLE_IDENTIFIER_COLUMNS + ['process_method', 'run_number']
+SCAN_IDENTIFIER_COLUMNS = SAMPLE_IDENTIFIER_COLUMNS + ['run_number']
 
 DEFAULT_MAX_WORKERS = 1
 
@@ -76,22 +76,19 @@ def get_relevant_filepaths(data_dir=DATA_DIR, file_patterns=FILE_PATTERNS):
 
 # TODO: use index?
 def get_sample_ids(samples, identifier_columns=SAMPLE_IDENTIFIER_COLUMNS,
-                   include_run_number=True, include_process_method=False, unique=True):
+                   include_run_number=True, unique=True):
     """Get sample ids for given samples.
 
     Args:
         samples ([pathlib.Path] OR pd.DataFrame): [list of samples to get ids for (could be lab reports or spect files)]
         identifier_columns ([string], optional): [list of columns to use as common identifiers]. Defaults to SAMPLE_IDENTIFIER_COLUMNS.
         include_run_number (bool, optional): [include run_number in id (applicable to spect files)]. Defaults to True.
-        include_process_method (bool, optional): [include process_method in id]. Defaults to False.
         unique (bool, optional): [whether to include only the unique ids, or all ids]. Defaults to True.
 
     Returns:
         [tuple]: [ids for provided samples]
     """
     if isinstance(samples, pd.DataFrame):
-        if include_process_method:
-            identifier_columns = [*identifier_columns, 'process_method']
         if include_run_number:
             identifier_columns = [*identifier_columns, 'run_number']
         sample_ids = zip(*[samples[column] for column in identifier_columns])
@@ -103,14 +100,11 @@ def get_sample_ids(samples, identifier_columns=SAMPLE_IDENTIFIER_COLUMNS,
         sample_ids = []
         for filepath in samples:
             if is_spect_file(filepath):
-                sample_name, process_method, sample_date, run_number = _extract_spect_filename_info(filepath.name)
+                sample_name, sample_date, run_number = _extract_spect_filename_info(filepath.name)
             else:
                 sample_name, sample_date = _extract_lab_report_filename_info(filepath.name)
                 run_number = None
-                process_method = None
             sample_id = [sample_name, sample_date]
-            if include_process_method:
-                sample_id.append(process_method)
             if include_run_number:
                 sample_id.append(run_number)
             sample_id = tuple(sample_id)
@@ -128,7 +122,7 @@ def get_unmatched_sample_ids(df_lr, df_samples):
     samples_ids = get_sample_ids(df_samples, include_run_number=False)
     return samples_ids - lr_ids
 
-
+# TODO: remove process method logic once we fix this
 def _extract_spect_filename_info(filename):
     sample_name_method, _, remaining = filename.partition('-')
     if '(' in sample_name_method:
@@ -139,10 +133,11 @@ def _extract_spect_filename_info(filename):
         sample_name = sample_name_method.strip().lower()
         process_method = ''
     process_method = process_method.lower()
+
     sample_date_string = re.search(r'\d+-\d+-\d+',remaining)[0].strip()
     sample_date = pd.to_datetime(sample_date_string, format=SCAN_FILE_DATETIME_FORMAT)
     run_number = filename.partition('#')[2].partition('.')[0]
-    return sample_name, process_method, sample_date, run_number
+    return sample_name, sample_date, run_number
 
 
 def _extract_integration_time(extra_info):
@@ -193,11 +188,10 @@ def parse_spect_file(path):
     sample_df['extra_info'] = extra_info
     sample_df['integration_time'] = _extract_integration_time(extra_info)
     sample_df['filename'] = path.name
-    sample_name, process_method, sample_date, run_number = _extract_spect_filename_info(path.name)
+    sample_name, sample_date, run_number = _extract_spect_filename_info(path.name)
     sample_df['sample_name'] = sample_name
     sample_df['sample_date'] = sample_date
     sample_df['run_number'] = run_number
-    sample_df['process_method'] = process_method
     sample_df = sample_df.reset_index(drop=True)
     return sample_df
 
@@ -382,7 +376,7 @@ class SpectroscopyDataMonitor:
         self.extracted_filepaths = set()
         self.cache = cache
         if column_order is None:
-            self.column_order = ['index', *SAMPLE_IDENTIFIER_COLUMNS, 'process_method', 'run_number']
+            self.column_order = ['index', *SAMPLE_IDENTIFIER_COLUMNS, 'run_number']
         self.load_data()
         # self.data_updated = True
         # set up file syncing
@@ -404,7 +398,6 @@ class SpectroscopyDataMonitor:
             extracted_data['index'] = get_sample_ids(
                 extracted_data,
                 unique=False,
-                include_process_method=True
             )
             
             if self.column_order is None:
