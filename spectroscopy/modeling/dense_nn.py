@@ -4,7 +4,7 @@ from skorch.regressor import NeuralNetRegressor
 import torch
 import torch.nn.functional as F
 
-from spectroscopy.modeling.utils import ToTorch
+from spectroscopy.modeling.utils import ToTorch, WavelengthDataExtractor
 
 
 class DenseNN(torch.nn.Module):
@@ -29,8 +29,11 @@ class DenseNN(torch.nn.Module):
         X = self.output(X)
         return X
 
-
-def define_model(num_features):
+def define_model():
+    # TODO: figure out how to get num_features in runtime after prepreprocess
+    # num_features=len(X_train.columns)
+    num_features = 510
+    # ex: get_wavelength_columns transformer
     model = NeuralNetRegressor(
         DenseNN(num_units=10, num_features=num_features),
         max_epochs=20,
@@ -38,6 +41,7 @@ def define_model(num_features):
         # device='cuda',  # uncomment this to train with CUDA
     ) 
     return Pipeline(steps=[
+        ('preprocess', WavelengthDataExtractor()),
         ('toTorch', ToTorch()),
         ('model', model)
     ])

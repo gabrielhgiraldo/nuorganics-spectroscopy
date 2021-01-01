@@ -6,7 +6,7 @@ from datetime import datetime
 
 import pandas as pd
 
-from spectroscopy.modeling.utils import load_model, transform_data
+from spectroscopy.modeling.utils import load_model
 from spectroscopy.data import (
     AVAILABLE_TARGETS,
 )
@@ -127,7 +127,7 @@ def load_models(tags):
 # TODO: speed up inference of models with concurrency
 def inference_models(model_tags, data):
     models = load_models(model_tags)
-    X = transform_data(data)
+    X = data
     for model_tag, model in models.items():
         logger.info(f'running inference with model {model_tag}')
         data[f'predicted_{model_tag}'] = model.predict(X)

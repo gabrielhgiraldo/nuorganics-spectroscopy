@@ -9,7 +9,6 @@ import pickle
 from pprint import pprint
 # from sklearn.compose import ColumnTransformer
 from sklearn.base import TransformerMixin
-from sklearn.ensemble import RandomForestRegressor
 # from sklearn.feature_selection import SelectFromModel
 from sklearn.model_selection import train_test_split
 # from sklearn.preprocessing import OneHotEncoder
@@ -49,17 +48,12 @@ class ToTorch(TransformerMixin):
         return self
 
 
-def get_features(df):
-    feature_columns = get_wavelength_columns(df)
-    feature_columns.append('integration_time')
-    return feature_columns
-
-# TODO: make this an sklearn transformer or series of transformers
-# TODO: enable different features for different models
-def transform_data(df):
-    feature_columns = get_features(df)
-    X = df[feature_columns]
-    return X
+class WavelengthDataExtractor(TransformerMixin):
+    def transform(self, X):
+        Y = X[get_wavelength_columns(X)]
+        return Y
+    def fit(self, X, y=None):
+        return self
 
 
 def train_models(model_builder, targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_data_path=None,
@@ -71,7 +65,7 @@ def train_models(model_builder, targets=AVAILABLE_TARGETS, data=None, model_dir=
         data = load_cached_extracted_data(EXTRACTED_REFERENCE_FILENAME, training_data_path)
     # TODO: make this an sklearn transformer
     # extract features and transform to format for training models
-    X = transform_data(data)
+    X = data
     # TODO: have feature extraction occur in model pipeline
     # TODO: add ability to include different experiments in one training run
     artifacts= {
@@ -92,7 +86,7 @@ def train_models(model_builder, targets=AVAILABLE_TARGETS, data=None, model_dir=
         X_train, X_test, y_train, y_test = train_test_split(X_temp, y_temp, test_size=0.3, random_state=10)
         logger.info(f'total samples:{len(data)} training on:{len(X_train)} testing on {len(X_test)}')
         # TODO: allow for different architectures for each model
-        model = model_builder(num_features=len(X_train.columns))
+        model = model_builder()
         # reshape target variable for skorch
         y_train = y_train.to_numpy().astype(np.float32).reshape(-1,1)
         y_test = y_test.to_numpy().astype(np.float32).reshape(-1,1)

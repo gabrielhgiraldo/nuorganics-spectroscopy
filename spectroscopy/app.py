@@ -26,7 +26,8 @@ from spectroscopy.app_utils import (
     upload_inference_data,
 )
 from spectroscopy.data import INFERENCE_RESULTS_FILENAME, SpectroscopyDataMonitor, EXTRACTED_DATA_FILENAME, UnmatchedFilesException
-from spectroscopy.modeling.dense_nn import define_model
+# from spectroscopy.modeling.dense_nn import define_model
+from spectroscopy.modeling.randomforest import define_model
 from spectroscopy.modeling.utils import train_models, load_all_performance_artifacts
 ## NEWEST TODO
 # TODO: add hyperparameter tuning to training pipeline
