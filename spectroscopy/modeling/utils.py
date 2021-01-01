@@ -63,10 +63,7 @@ def train_models(model_builder, targets=AVAILABLE_TARGETS, data=None, model_dir=
     model_dir = Path(model_dir)
     if data is None:
         data = load_cached_extracted_data(EXTRACTED_REFERENCE_FILENAME, training_data_path)
-    # TODO: make this an sklearn transformer
-    # extract features and transform to format for training models
     X = data
-    # TODO: have feature extraction occur in model pipeline
     # TODO: add ability to include different experiments in one training run
     artifacts= {
         'metrics':{},
@@ -87,9 +84,10 @@ def train_models(model_builder, targets=AVAILABLE_TARGETS, data=None, model_dir=
         logger.info(f'total samples:{len(data)} training on:{len(X_train)} testing on {len(X_test)}')
         # TODO: allow for different architectures for each model
         model = model_builder()
-        # reshape target variable for skorch
-        y_train = y_train.to_numpy().astype(np.float32).reshape(-1,1)
-        y_test = y_test.to_numpy().astype(np.float32).reshape(-1,1)
+        # BUG: figure out how to include this in pipeline
+        # # reshape target variable for skorch
+        # y_train = y_train.to_numpy().astype(np.float32).reshape(-1,1)
+        # y_test = y_test.to_numpy().astype(np.float32).reshape(-1,1)
         model.fit(X_train, y_train)
         models[target] = model
         # save model
