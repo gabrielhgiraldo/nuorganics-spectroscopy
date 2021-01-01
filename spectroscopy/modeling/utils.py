@@ -12,7 +12,6 @@ from pprint import pprint
 from sklearn.base import TransformerMixin
 from sklearn.ensemble import RandomForestRegressor
 # from sklearn.feature_selection import SelectFromModel
-from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 # from sklearn.preprocessing import OneHotEncoder
@@ -27,11 +26,13 @@ from spectroscopy.data import (
     load_cached_extracted_data,
     AVAILABLE_TARGETS
 )
-
 from spectroscopy.utils import(
     get_wavelength_columns,
     plot_pred_v_actual,
 )
+from spectroscopy.modeling.evaluation import score_model
+
+
 MODEL_DIR = Path('bin/model/')
 MODEL_FILENAME = 'model.pkl'
 MODEL_METRICS_FILENAME = 'scores.json'
@@ -72,33 +73,7 @@ class ToTorch(TransformerMixin):
     def fit(self, X, y=None):
         return self
 
-def mean_absolute_percentage_error(y_true, y_pred): 
-    # y_true, y_pred = check_arrays(y_true, y_pred)
 
-    ## Note: does not handle mix 1d representation
-    #if _is_1d(y_true): 
-    #    y_true, y_pred = _check_1d_array(y_true, y_pred)
-
-    return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
-
-
-def score_model(model, X_train, y_train, X_test, y_test):
-    y_train_pred = model.predict(X_train)
-    y_test_pred = model.predict(X_test)
-    return {
-        'train':{
-            'r2':model.score(X_train, y_train),
-            'mape':mean_absolute_percentage_error(y_train, y_train_pred),
-            'rmse':np.sqrt(mean_squared_error(y_train, y_train_pred)),
-        },
-        'test':{
-            'r2':model.score(X_test, y_test),
-            'mape':mean_absolute_percentage_error(y_test, y_test_pred),
-            'rmse':np.sqrt(mean_squared_error(y_test, y_test_pred))
-        }
-    }
-# TODO: try tweaking neural network parameters (optimizer, loss, etc.)
-# TODO: try using convolutional layers
 def define_model(num_features):
     # model = RandomForestRegressor(random_state=10)
     # model = LGBMRegressor()
@@ -226,15 +201,7 @@ def get_model_graph_paths(model_target, model_dir=None):
     model_dir = Path(model_dir) / model_target
     graph_paths = list(model_dir.glob('*.png'))
     return graph_paths
-# TODO: do we want to generate the graphs once and display them as images on the UI?
-# TODO: OR do we want to predict on the test data and generate the graphs dynamically?
-# def load_model_graphs(model_target, model_dir=None):
-#     if model_dir is None:
-#         model_dir = MODEL_DIR
-#     model_dir = Path(model_dir) / model_target
-#     with open(model_dir / MODEL_PRED_ACT_GRAPH_FILENAME) as f:
-#         # pred_v_actual_graph = predicted_vs_actual_graph()
-#     return scores
+
 
 
 def load_model_data(target, model_dir):
