@@ -4,7 +4,7 @@ import os
 
 import pandas as pd
 
-from spectroscopy.model import load_model, get_features
+from spectroscopy.model_utils import load_model, get_features
 from spectroscopy.utils import parse_trm_files
 
 # Construct the argument parser

@@ -6,7 +6,7 @@ from datetime import datetime
 
 import pandas as pd
 
-from spectroscopy.model import load_model, transform_data
+from spectroscopy.model_utils import load_model, transform_data
 from spectroscopy.data import (
     AVAILABLE_TARGETS,
 )

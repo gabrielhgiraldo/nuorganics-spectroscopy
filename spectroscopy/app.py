@@ -26,11 +26,9 @@ from spectroscopy.app_utils import (
     upload_inference_data,
 )
 from spectroscopy.data import INFERENCE_RESULTS_FILENAME, SpectroscopyDataMonitor, EXTRACTED_DATA_FILENAME, UnmatchedFilesException
-from spectroscopy.model import train_models, load_all_performance_artifacts
+from spectroscopy.model_utils import train_models, load_all_performance_artifacts
 ## NEWEST TODO
-# TODO: add matplotlib to dependencies
-# TODO: add pandas to dependencies
-# TODO: add sklearn to dependencies
+# TODO: add hyperparameter tuning to training pipeline
 # TODO: allow ability to manage test set/ train-test split from UI or folders
 # TODO: make script to correct file namings
 # TODO: browser freezing on load-up of data (paging?)

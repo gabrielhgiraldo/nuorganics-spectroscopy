@@ -8,22 +8,22 @@ import numpy as np
 import pandas as pd
 import pickle
 from pprint import pprint
-from sklearn.compose import ColumnTransformer
+# from sklearn.compose import ColumnTransformer
+from sklearn.base import TransformerMixin
 from sklearn.ensemble import RandomForestRegressor
 # from sklearn.feature_selection import SelectFromModel
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder
+# from sklearn.preprocessing import OneHotEncoder
 # from sklearn.decomposition import PCA
-# from skorch.regressor import NeuralNetRegressor
-# from torch import nn
-# import torch.nn.functional as F
+from skorch.regressor import NeuralNetRegressor
+import torch
+import torch.nn.functional as F
 
 
 from spectroscopy.data import (
     EXTRACTED_REFERENCE_FILENAME,
-    get_sample_ids,
     load_cached_extracted_data,
     AVAILABLE_TARGETS
 )
@@ -41,26 +41,36 @@ MODEL_DATA_DICT_FILENAME = 'data_dict.pkl'
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# class RegressorModule(nn.Module):
-#     def __init__(
-#             self,
-#             num_units=10,
-#             nonlin=F.relu,
-#     ):
-#         super(RegressorModule, self).__init__()
-#         self.num_units = num_units
-#         self.nonlin = nonlin
+class RegressorModule(torch.nn.Module):
+    def __init__(
+            self,
+            num_features,
+            num_units=10,
+            nonlin=F.relu,
+    ):
+        super(RegressorModule, self).__init__()
+        self.num_units = num_units
+        self.nonlin = nonlin
 
-#         self.dense0 = nn.Linear(20, num_units)
-#         self.nonlin = nonlin
-#         self.dense1 = nn.Linear(num_units, 10)
-#         self.output = nn.Linear(10, 1)
+        self.dense0 = torch.nn.Linear(num_features, num_units)
+        self.nonlin = nonlin
+        self.dense1 = torch.nn.Linear(num_units, 10)
+        self.output = torch.nn.Linear(10, 1)
 
-#     def forward(self, X, **kwargs):
-#         X = self.nonlin(self.dense0(X))
-#         X = F.relu(self.dense1(X))
-#         X = self.output(X)
-#         return X
+    def forward(self, X, **kwargs):
+        X = self.nonlin(self.dense0(X))
+        X = F.relu(self.dense1(X))
+        X = self.output(X)
+        return X
+
+class ToTorch(TransformerMixin):
+    def transform(self, X):
+        Y = torch.from_numpy(X.values.astype(np.float32)).float()
+        # Y = Y.type(torch.DoubleTensor)
+        return Y
+
+    def fit(self, X, y=None):
+        return self
 
 def mean_absolute_percentage_error(y_true, y_pred): 
     # y_true, y_pred = check_arrays(y_true, y_pred)
@@ -87,18 +97,21 @@ def score_model(model, X_train, y_train, X_test, y_test):
             'rmse':np.sqrt(mean_squared_error(y_test, y_test_pred))
         }
     }
-
-def define_model():
-#     return NeuralNetRegressor(
-#         RegressorModule,
-#         max_epochs=20,
-#         lr=0.1,
-# #     device='cuda',  # uncomment this to train with CUDA
-#     )
-    # return RandomForestRegressor(random_state=10, max_depth=20, n_estimators=100)
-    # return LGBMRegressor()
+# TODO: try tweaking neural network parameters (optimizer, loss, etc.)
+# TODO: try using convolutional layers
+def define_model(num_features):
+    # model = RandomForestRegressor(random_state=10)
+    # model = LGBMRegressor()
+    model =  NeuralNetRegressor(
+        RegressorModule(num_units=10, num_features=num_features),
+        max_epochs=20,
+        lr=0.01,
+    
+#     device='cuda',  # uncomment this to train with CUDA
+    )
     return Pipeline(steps=[
-        ('model', RandomForestRegressor(random_state=10))
+        ('toTorch', ToTorch()),
+        ('model', model)
     ])
 
 def get_features(df):
@@ -120,9 +133,9 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
         model_dir = MODEL_DIR
     model_dir = Path(model_dir)
     if data is None:
-        # TODO: exctract data if there's no cached
         data = load_cached_extracted_data(EXTRACTED_REFERENCE_FILENAME, training_data_path)
     # TODO: make this an sklearn transformer
+    # extract features and transform to format for training models
     X = transform_data(data)
     # TODO: have feature extraction occur in model pipeline
     # TODO: add ability to include different experiments in one training run
@@ -131,6 +144,7 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
         'graphs':{},
         'data':{}
     }
+    # train a model for each regression target variable
     models = {}
     for target in targets:
         logger.info(f'Fitting {target} model')
@@ -143,8 +157,10 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
         X_train, X_test, y_train, y_test = train_test_split(X_temp, y_temp, test_size=0.3, random_state=10)
         logger.info(f'total samples:{len(data)} training on:{len(X_train)} testing on {len(X_test)}')
         # TODO: allow for different architectures for each model
-        model = define_model()
-        # remove the index
+        model = define_model(num_features=len(X_train.columns))
+        # reshape target variable for skorch
+        y_train = y_train.to_numpy().astype(np.float32).reshape(-1,1)
+        y_test = y_test.to_numpy().astype(np.float32).reshape(-1,1)
         model.fit(X_train, y_train)
         models[target] = model
         # save model
