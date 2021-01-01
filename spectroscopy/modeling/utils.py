@@ -1,7 +1,6 @@
 import json                 
 import logging
 from pathlib import Path
-# from spectroscopy.app_layout import predicted_vs_actual_graph
 
 # from lightgbm import LGBMRegressor
 import numpy as np
@@ -13,12 +12,9 @@ from sklearn.base import TransformerMixin
 from sklearn.ensemble import RandomForestRegressor
 # from sklearn.feature_selection import SelectFromModel
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
 # from sklearn.preprocessing import OneHotEncoder
 # from sklearn.decomposition import PCA
-from skorch.regressor import NeuralNetRegressor
 import torch
-import torch.nn.functional as F
 
 
 from spectroscopy.data import (
@@ -42,27 +38,6 @@ MODEL_DATA_DICT_FILENAME = 'data_dict.pkl'
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-class RegressorModule(torch.nn.Module):
-    def __init__(
-            self,
-            num_features,
-            num_units=10,
-            nonlin=F.relu,
-    ):
-        super(RegressorModule, self).__init__()
-        self.num_units = num_units
-        self.nonlin = nonlin
-
-        self.dense0 = torch.nn.Linear(num_features, num_units)
-        self.nonlin = nonlin
-        self.dense1 = torch.nn.Linear(num_units, 10)
-        self.output = torch.nn.Linear(10, 1)
-
-    def forward(self, X, **kwargs):
-        X = self.nonlin(self.dense0(X))
-        X = F.relu(self.dense1(X))
-        X = self.output(X)
-        return X
 
 class ToTorch(TransformerMixin):
     def transform(self, X):
@@ -73,21 +48,6 @@ class ToTorch(TransformerMixin):
     def fit(self, X, y=None):
         return self
 
-
-def define_model(num_features):
-    # model = RandomForestRegressor(random_state=10)
-    # model = LGBMRegressor()
-    model =  NeuralNetRegressor(
-        RegressorModule(num_units=10, num_features=num_features),
-        max_epochs=20,
-        lr=0.01,
-    
-#     device='cuda',  # uncomment this to train with CUDA
-    )
-    return Pipeline(steps=[
-        ('toTorch', ToTorch()),
-        ('model', model)
-    ])
 
 def get_features(df):
     feature_columns = get_wavelength_columns(df)
@@ -102,7 +62,7 @@ def transform_data(df):
     return X
 
 
-def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_data_path=None,
+def train_models(model_builder, targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_data_path=None,
                  evaluate=True):
     if model_dir is None:
         model_dir = MODEL_DIR
@@ -132,7 +92,7 @@ def train_models(targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_
         X_train, X_test, y_train, y_test = train_test_split(X_temp, y_temp, test_size=0.3, random_state=10)
         logger.info(f'total samples:{len(data)} training on:{len(X_train)} testing on {len(X_test)}')
         # TODO: allow for different architectures for each model
-        model = define_model(num_features=len(X_train.columns))
+        model = model_builder(num_features=len(X_train.columns))
         # reshape target variable for skorch
         y_train = y_train.to_numpy().astype(np.float32).reshape(-1,1)
         y_test = y_test.to_numpy().astype(np.float32).reshape(-1,1)

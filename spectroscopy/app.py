@@ -26,6 +26,7 @@ from spectroscopy.app_utils import (
     upload_inference_data,
 )
 from spectroscopy.data import INFERENCE_RESULTS_FILENAME, SpectroscopyDataMonitor, EXTRACTED_DATA_FILENAME, UnmatchedFilesException
+from spectroscopy.modeling.dense_nn import define_model
 from spectroscopy.modeling.utils import train_models, load_all_performance_artifacts
 ## NEWEST TODO
 # TODO: add hyperparameter tuning to training pipeline
@@ -129,6 +130,7 @@ def on_train_models(n_clicks, training_targets):
     if changed_id == 'train-models':
         model_dir = get_model_dir()
         artifacts, models = train_models(
+            model_builder=define_model,
             targets=training_targets,
             data=training_data_monitor.extracted_data,
             model_dir=model_dir
