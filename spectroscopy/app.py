@@ -39,6 +39,10 @@ from spectroscopy.modeling.randomforest import (
 )
 from spectroscopy.modeling.utils import train_models, load_all_performance_artifacts
 ## NEWEST TODO
+# TODO: allow for separate algorithms & hyperparameters for each target
+# TODO: add performance graphs for both training and testing, not just testing
+# TODO: make it so graphs are expandable underneath their corresponding section in UI
+# e.g. training raphs go under performance --> {TARGET/MODEL}  --> training --> graphs
 # TODO: add bayesian optimization tuning
 # TODO: add ability to turn HP tuning on and off from UI
 # TODO: allow ability to manage test set/ train-test split from UI or folders

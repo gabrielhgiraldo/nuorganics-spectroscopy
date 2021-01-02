@@ -9,8 +9,8 @@ def define_model():
         steps=[
             ('preprocess', WavelengthDataExtractor()),
             ('model', RandomForestRegressor(
-                n_estimators=400,
-                max_features=1,
+                # n_estimators=400,
+                # max_features=1,
                 # max_depth=5
             )),
         ])

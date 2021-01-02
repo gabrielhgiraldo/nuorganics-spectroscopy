@@ -311,10 +311,10 @@ def model_card(model_tag, metrics):
             )
         ]
     )
-
-
-# TODO: include residual graphs, fit graphs, other graphs,
-# TODO: include maximum value, minimum value for each metric, stdev, etc.
+# TODO: add graphs for training and testing & put under respective sections
+# TODO: make graph sections collapsible
+# TODO: (maybe) include residual graphs, fit graphs, other graphs,
+# TODO: (maybe) include maximum value, minimum value for each metric, stdev, etc.
 def model_performance_section(artifacts, interactive_graph=True):
     # metrics
     children = [html.H5('Performance')]

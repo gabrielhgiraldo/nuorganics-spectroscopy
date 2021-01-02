@@ -174,7 +174,7 @@ def load_model(model_target, model_dir=None):
         model = pickle.load(f)
     return model
 
-
+# TODO: load both train and test metrics
 def load_model_metrics(model_target, model_dir=None):
     """Load performance metrics stored for particular target from corresponding folder"""
     if model_dir is None:
