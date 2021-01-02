@@ -489,7 +489,7 @@ class SpectroscopyDataMonitor:
             deleted_filenames = [fp.name for fp in deleted_filepaths]
             logger.warn(f'files deleted: {deleted_filenames}')
             filename_keys = {'filename_lr', 'filename_trm', 'filename'}
-            mask = pd.Series([False]*len(self.extracted_data.index))
+            mask = pd.Series([False]*len(self.extracted_data.index), index=self.extracted_data.index)
             for key in filename_keys:
                 if key in self.extracted_data:
                     mask |= self.extracted_data[key].isin(deleted_filenames)        
