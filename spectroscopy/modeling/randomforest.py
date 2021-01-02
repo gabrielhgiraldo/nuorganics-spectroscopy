@@ -7,5 +7,8 @@ def define_model():
     return Pipeline(
         steps=[
             ('preprocess', WavelengthDataExtractor()),
-            ('model', RandomForestRegressor()),
+            ('model', RandomForestRegressor(
+                # n_estimators=1000
+                # max_depth=20
+            )),
         ])

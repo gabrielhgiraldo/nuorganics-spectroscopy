@@ -13,7 +13,7 @@ import pickle
 
 # TODO: write unittests for these functions
 # TODO: use index of dataframe for sample_ids
-
+# TODO: make this generalizable to arbitrary targets based on uploaded groundtruth csvs
 AMMONIA_N = 'Ammonia-N'
 TOTAL_N = 'N'
 PERCENT_MOISTURE = 'Moisture'
