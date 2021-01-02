@@ -25,12 +25,22 @@ from spectroscopy.app_utils import (
     save_user_settings,
     upload_inference_data,
 )
-from spectroscopy.data import INFERENCE_RESULTS_FILENAME, SpectroscopyDataMonitor, EXTRACTED_DATA_FILENAME, UnmatchedFilesException
+from spectroscopy.data import (
+    INFERENCE_RESULTS_FILENAME,
+    SpectroscopyDataMonitor,
+    EXTRACTED_DATA_FILENAME,
+    UnmatchedFilesException
+)
 # from spectroscopy.modeling.dense_nn import define_model
-from spectroscopy.modeling.randomforest import define_model
+from spectroscopy.modeling.randomforest import (
+    define_model,
+    generate_randomsearch_grid,
+    generate_gridsearch_grid
+)
 from spectroscopy.modeling.utils import train_models, load_all_performance_artifacts
 ## NEWEST TODO
-# TODO: add hyperparameter tuning to training pipeline
+# TODO: add bayesian optimization tuning
+# TODO: add ability to turn HP tuning on and off from UI
 # TODO: allow ability to manage test set/ train-test split from UI or folders
 # TODO: make script to correct file namings
 # TODO: browser freezing on load-up of data (paging?)
@@ -130,14 +140,16 @@ def on_train_models(n_clicks, training_targets):
     changed_id = ctx.triggered[0]['prop_id'].split('.')[0]
     if changed_id == 'train-models':
         model_dir = get_model_dir()
-        artifacts, models = train_models(
+        new_artifacts, models = train_models(
             model_builder=define_model,
             targets=training_targets,
             data=training_data_monitor.extracted_data,
-            model_dir=model_dir
+            model_dir=model_dir,
+            # randomsearch_param_builder=generate_randomsearch_grid,
+            # gridsearch_param_builder=generate_gridsearch_grid
         )
         # add predicted values for test samples
-        for target, data_dict in artifacts['data'].items():
+        for target, data_dict in new_artifacts['data'].items():
             # get training and testing data
             # mask = training_data_monitor.extracted_data.index.isin(data_dict['test_samples'].index)
             # training_data_monitor.extracted_data[mask]['train_test'] = 'test'
@@ -147,9 +159,12 @@ def on_train_models(n_clicks, training_targets):
             training_data_monitor.extracted_data.loc[mask, f'predicted_{target}'] = data_dict['y_pred']
         # trigger ordering
         training_data_monitor.set_extracted_data(training_data_monitor.extracted_data)
-    else:
-        artifacts = load_all_performance_artifacts(model_dir=get_model_dir())
-    return model_performance_section(artifacts), model_data_table(training_data_monitor.extracted_data, 'train')
+
+    artifacts = load_all_performance_artifacts(model_dir=get_model_dir())
+    return (
+        model_performance_section(artifacts),
+        model_data_table(training_data_monitor.extracted_data, 'train')
+    )
 
 
 @app.callback(

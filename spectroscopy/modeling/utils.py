@@ -10,7 +10,7 @@ from pprint import pprint
 # from sklearn.compose import ColumnTransformer
 from sklearn.base import TransformerMixin
 # from sklearn.feature_selection import SelectFromModel
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, RandomizedSearchCV, GridSearchCV
 # from sklearn.preprocessing import OneHotEncoder
 # from sklearn.decomposition import PCA
 import torch
@@ -57,7 +57,7 @@ class WavelengthDataExtractor(TransformerMixin):
 
 
 def train_models(model_builder, targets=AVAILABLE_TARGETS, data=None, model_dir=None, training_data_path=None,
-                 evaluate=True):
+                 evaluate=True, randomsearch_param_builder=None, gridsearch_param_builder=None):
     if model_dir is None:
         model_dir = MODEL_DIR
     model_dir = Path(model_dir)
@@ -88,7 +88,44 @@ def train_models(model_builder, targets=AVAILABLE_TARGETS, data=None, model_dir=
         # # reshape target variable for skorch
         # y_train = y_train.to_numpy().astype(np.float32).reshape(-1,1)
         # y_test = y_test.to_numpy().astype(np.float32).reshape(-1,1)
-        model.fit(X_train, y_train)
+        # TODO: add hyper parameter tuning
+        if randomsearch_param_builder:
+            # TODO: allow for other forms of hyperparameter tuning
+            random_grid = randomsearch_param_builder()
+            pprint(random_grid)
+            random_search = RandomizedSearchCV(
+                estimator=model,
+                param_distributions=random_grid,
+                n_iter = 100,
+                cv=3,
+                verbose=2,
+                random_state=42,
+                n_jobs = -1
+            )
+            # Fit the random search model
+            random_search.fit(X_train, y_train)
+            pprint(random_search.best_params_)
+            pprint(random_search.best_score_)
+            model = random_search.best_estimator_
+
+        if gridsearch_param_builder:
+            if randomsearch_param_builder:
+                grid = gridsearch_param_builder(random_search.best_params_)
+            else:
+                grid = gridsearch_param_builder()
+            grid_search = GridSearchCV(
+                estimator=model,
+                param_grid=grid,
+                cv=3,
+                n_jobs=-1,
+                verbose=2
+            )
+            grid_search.fit(X_train, y_train)
+            pprint(grid_search.best_params_)
+            pprint(grid_search.best_score_)
+            model = grid_search.best_estimator_
+        else:
+            model.fit(X_train, y_train)
         models[target] = model
         # save model
         target_model_dir.mkdir(parents=True, exist_ok=True)
