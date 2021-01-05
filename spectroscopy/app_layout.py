@@ -308,7 +308,7 @@ def metrics_section(section_name, metrics):
     ])
 
 # TODO: add model performance graphs here?
-def model_card(model_tag, metrics, graphs):
+def model_card(model_tag, metrics):
     metrics_sections = []
     for section, section_metrics in metrics.items():
         metrics_sections.append(metrics_section(section, section_metrics))
@@ -332,7 +332,7 @@ def model_performance_section(artifacts, interactive_graph=True):
     model_metrics = artifacts['metrics']
     metrics_cards = []
     for target, metrics in model_metrics.items():
-        card = model_card(target, metrics, graphs)
+        card = model_card(target, metrics)
         metrics_cards.append(card)
     children.extend(metrics_cards)
     # graph section
