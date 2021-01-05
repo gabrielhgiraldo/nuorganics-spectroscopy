@@ -242,7 +242,7 @@ def trained_models_section():
         ],
     )
 
-def pred_v_actual_graph(samples, target, y_pred, y_true):
+def pred_v_actual_graph(samples, target, y_pred, y_true, include_residual_bars=True):
     max_value = y_true.max()
     max_value += max_value/10
     samples['y_true'] = y_true
@@ -271,6 +271,17 @@ def pred_v_actual_graph(samples, target, y_pred, y_true):
         x=x,
         y=x,
     ).data[0])
+    # add residual bars
+    if include_residual_bars:
+        for _, sample in samples.iterrows():
+            fig.add_shape(
+                type="line",
+                x0=sample['y_true'],
+                y0=sample['y_true'],
+                x1=sample['y_true'],
+                y1=sample['y_pred'],
+                line=dict(color="Orange", width=1)
+            )
     return dcc.Graph(figure=fig)
 
 
@@ -297,7 +308,7 @@ def metrics_section(section_name, metrics):
     ])
 
 # TODO: add model performance graphs here?
-def model_card(model_tag, metrics):
+def model_card(model_tag, metrics, graphs):
     metrics_sections = []
     for section, section_metrics in metrics.items():
         metrics_sections.append(metrics_section(section, section_metrics))
@@ -316,15 +327,15 @@ def model_card(model_tag, metrics):
 # TODO: (maybe) include residual graphs, fit graphs, other graphs,
 # TODO: (maybe) include maximum value, minimum value for each metric, stdev, etc.
 def model_performance_section(artifacts, interactive_graph=True):
-    # metrics
+    # metric section
     children = [html.H5('Performance')]
     model_metrics = artifacts['metrics']
     metrics_cards = []
-    for model, metrics in model_metrics.items():
-        card = model_card(model, metrics)
+    for target, metrics in model_metrics.items():
+        card = model_card(target, metrics, graphs)
         metrics_cards.append(card)
     children.extend(metrics_cards)
-    # graphs
+    # graph section
     if interactive_graph:
         for target, data_dict in artifacts['data'].items():
             y_pred = data_dict['y_pred']
