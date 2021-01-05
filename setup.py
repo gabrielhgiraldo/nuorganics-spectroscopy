@@ -16,7 +16,9 @@ setup(
         'dash',
         'matplotlib',
         'pandas',
-        'sklearn'
+        'sklearn',
+        'skorch',
+        'torch'
     ],
     include_package_data=True
 )
