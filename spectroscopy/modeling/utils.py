@@ -84,11 +84,10 @@ def train_models(model_builder, targets=AVAILABLE_TARGETS, data=None, model_dir=
         logger.info(f'total samples:{len(data)} training on:{len(X_train)} testing on {len(X_test)}')
         # TODO: allow for different architectures for each model
         model = model_builder()
-        # BUG: figure out how to include this in pipeline
+        # BUG: figure out how to include this in pipeline for NN models
         # # reshape target variable for skorch
         # y_train = y_train.to_numpy().astype(np.float32).reshape(-1,1)
         # y_test = y_test.to_numpy().astype(np.float32).reshape(-1,1)
-        # TODO: add hyper parameter tuning
         if randomsearch_param_builder:
             # TODO: allow for other forms of hyperparameter tuning
             random_grid = randomsearch_param_builder()
@@ -110,6 +109,7 @@ def train_models(model_builder, targets=AVAILABLE_TARGETS, data=None, model_dir=
 
         if gridsearch_param_builder:
             if randomsearch_param_builder:
+                # do gridsearch based on set of initial randomsearch params
                 grid = gridsearch_param_builder(random_search.best_params_)
             else:
                 grid = gridsearch_param_builder()
@@ -136,25 +136,43 @@ def train_models(model_builder, targets=AVAILABLE_TARGETS, data=None, model_dir=
             scores = score_model(model, X_train, y_train, X_test, y_test)
             logger.info(pprint(scores))
             logger.info('saving fit graph')
-            y_pred = pd.Series(model.predict(X_test), index=X_test.index)
+            y_pred_test = pd.Series(model.predict(X_test), index=X_test.index)
+            y_pred_train = pd.Series(model.predict(X_train), index=X_train.index)
             # create predicted vs actual graph & save img version
+            ## train
+            _, fig_save_path = plot_pred_v_actual(
+                model_target=target,
+                y_true=y_train,
+                y_pred=y_pred_train,
+                save_dir = target_model_dir
+            )
+            ## test
             _, fig_save_path = plot_pred_v_actual(
                 model_target=target,
                 y_true=y_test,
-                y_pred=y_pred,
+                y_pred=y_pred_test,
                 save_dir = target_model_dir
             )
+
             # TODO: use database or experiment handling framework for metrics storage
             # save metrics
             with open(target_model_dir/MODEL_METRICS_FILENAME, 'w') as f:
                 json.dump(scores, f)
-            # get data associated with index
+            # get data associated with train and test datasets
             test_samples = data[data.index.isin(X_test.index)]
+            train_samples = data[data.index.isin(X_train.index)]
             # save data
             data_dict = {
-                'y_pred': y_pred,
-                'y_test': y_test, 
-                'test_samples': test_samples,
+                'train':{
+                    'y_pred': y_pred_train,
+                    'y_true':y_train,
+                    'samples':train_samples
+                },
+                'test':{
+                    'y_pred':y_pred_test,
+                    'y_true':y_test,
+                    'samples':test_samples
+                }
             }
             with open(target_model_dir/MODEL_DATA_DICT_FILENAME, 'wb') as f:
                 pickle.dump(data_dict, f)

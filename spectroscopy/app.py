@@ -43,14 +43,12 @@ from spectroscopy.modeling.utils import train_models, load_all_performance_artif
 # TODO: add performance graphs for both training and testing, not just testing
 # TODO: make it so graphs are expandable underneath their corresponding section in UI
 # e.g. training raphs go under performance --> {TARGET/MODEL}  --> training --> graphs
-# TODO: add bayesian optimization tuning
+# TODO: add bayesian optimization hyperparameter tuning
 # TODO: add ability to turn HP tuning on and off from UI
-# TODO: allow ability to manage test set/ train-test split from UI or folders
-# TODO: make script to correct file namings
-# TODO: browser freezing on load-up of data (paging?)
-# TODO: display model parameters
-# TODO: give ability to choose which columns to include in extraction from lab report, etc.
-# TODO: add ability to configure included model parameters
+# TODO: (?) add ability to configure included model parameters
+# TODO: (?) allow ability to manage test set/ train-test split from UI or folders
+# TODO: (?) display model parameters
+# TODO: (?) give ability to choose which columns to include in extraction from lab report, etc.
 
 
 app = dash.Dash(__name__,
@@ -159,8 +157,8 @@ def on_train_models(n_clicks, training_targets):
             # training_data_monitor.extracted_data[mask]['train_test'] = 'test'
             # training_data_monitor.extracted_data[~mask]['train_test'] = 'train'
             # add predicted values to the data
-            mask = training_data_monitor.extracted_data.index.isin(data_dict['y_pred'].index)
-            training_data_monitor.extracted_data.loc[mask, f'predicted_{target}'] = data_dict['y_pred']
+            mask = training_data_monitor.extracted_data.index.isin(data_dict['test']['y_pred'].index)
+            training_data_monitor.extracted_data.loc[mask, f'predicted_{target}'] = data_dict['test']['y_pred']
         # trigger ordering
         training_data_monitor.set_extracted_data(training_data_monitor.extracted_data)
 

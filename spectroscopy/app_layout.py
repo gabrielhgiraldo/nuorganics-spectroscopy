@@ -46,7 +46,6 @@ def render_layout(training_monitor, inference_monitor):
                 dcc.Tab(label='Inference', value='inference-tab',
                     children=inference_content(inference_monitor)
                 ),
-                # dcc.Tab(label='Analysis', value='analysis-tab')
             ]),
     ])
 
@@ -180,7 +179,9 @@ def target_selector(tag):
 # TODO: create custom component for this
 # TODO: make these collapsible 
 # TODO: accept only certaint tpyes of files as variable
+# TODO: add folder generation logic here
 def model_data_section(tag, monitor, sync_interval=None, enable_upload=True):
+    """Generate UI components for managing data"""
     monitor.sync_data()
     children = [
             html.H4(f'{tag} Data'.title()),
@@ -228,6 +229,7 @@ def model_data_section(tag, monitor, sync_interval=None, enable_upload=True):
 
 
 def trained_models_section():
+    """Generate UI content for providing model training functionality"""
     return html.Div(
         children=[
             html.H4('Models'),
@@ -287,6 +289,7 @@ def pred_v_actual_graph(samples, target, y_pred, y_true, include_residual_bars=T
 
 
 def metric_card(metric_name, metric_value, n_columns=1):
+    """Generate UI components for displaying a single metric."""
     word_to_number = ["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve"]
     return html.Div(
         children=[
@@ -296,7 +299,9 @@ def metric_card(metric_name, metric_value, n_columns=1):
         className=f"{word_to_number[int(12/n_columns)]} columns"
     )
 
-def metrics_section(section_name, metrics):
+def dataset_metrics_section(section_name, metrics):
+    """Generate the UI content for displaying arbitrary number of metrics associated with
+    an arbitrary number of datasets (train, test, validation, etc.)"""
     cards = []
     for metric, metric_value in metrics.items():
         card = metric_card(metric, metric_value, len(metrics))
@@ -308,10 +313,11 @@ def metrics_section(section_name, metrics):
     ])
 
 # TODO: add model performance graphs here?
-def model_card(model_tag, metrics):
+def model_metrics_card(model_tag, metrics):
+    """Generate the UI content for displaying arbitrary number of model metrics"""
     metrics_sections = []
-    for section, section_metrics in metrics.items():
-        metrics_sections.append(metrics_section(section, section_metrics))
+    for dataset_name, dataset_metrics in metrics.items():
+        metrics_sections.append(dataset_metrics_section(dataset_name, dataset_metrics))
 
     return html.Div(
         children=[
@@ -326,23 +332,28 @@ def model_card(model_tag, metrics):
 # TODO: make graph sections collapsible
 # TODO: (maybe) include residual graphs, fit graphs, other graphs,
 # TODO: (maybe) include maximum value, minimum value for each metric, stdev, etc.
-def model_performance_section(artifacts, interactive_graph=True):
+def model_performance_section(artifacts, interactive_graph=True, included_datasets='test'):
+    """Generate the UI content for displaying performance information (graphs, metrics, etc.)
+    for all models"""
     # metric section
     children = [html.H5('Performance')]
     model_metrics = artifacts['metrics']
     metrics_cards = []
     for target, metrics in model_metrics.items():
-        card = model_card(target, metrics)
+        card = model_metrics_card(target, metrics)
         metrics_cards.append(card)
     children.extend(metrics_cards)
     # graph section
     if interactive_graph:
         for target, data_dict in artifacts['data'].items():
-            y_pred = data_dict['y_pred']
-            y_true = data_dict['y_test']
-            samples = data_dict['test_samples']
-            graph = pred_v_actual_graph(samples, target, y_pred, y_true)
-            children.append(graph)
+            for dataset, dataset_dict in data_dict.items():
+                if dataset in included_datasets:
+                    y_pred = dataset_dict['y_pred']
+                    y_true = dataset_dict['y_true']
+                    samples = dataset_dict['samples']
+                    # TODO: add train and test graph side-by-side
+                    graph = pred_v_actual_graph(samples, target, y_pred, y_true)
+                    children.append(graph)
     else:
         # graphs as imgs
         model_graph_paths = artifacts['graphs']
@@ -364,6 +375,7 @@ def model_performance_section(artifacts, interactive_graph=True):
 
 # TODO: add testing data section and results
 def training_content(monitor, sync_interval=None):
+    """Generate the UI content for model training and data management"""
     return html.Div(
         children=[
             model_data_section('train',
@@ -379,6 +391,7 @@ def training_content(monitor, sync_interval=None):
 
 ## INFERENCE
 def inference_content(monitor, sync_interval=None):
+    """Generate the UI content for model inferencing functionality"""
     return html.Div(
         children=[
             model_data_section('inference',
@@ -394,6 +407,7 @@ def inference_content(monitor, sync_interval=None):
 
 
 def transmittance_graph(data):
+    """Generate a plotly line graph of transmittance data (spectroscopy scans)"""
     wavelengths = get_wavelength_columns(data)
     wavelength_data = data[wavelengths]
     fig = go.Figure()
