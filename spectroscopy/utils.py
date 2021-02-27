@@ -18,14 +18,14 @@ def plot_sample(wavelengths, transmittance):
     plt.show()
 
 
-def get_wavelength_columns(df, lower_bound=None):
+def get_wavelength_columns(df, lower_bound=850, upper_bound=1625):
     wavelength_columns = []
     for column in df.columns:
         try:
             value = float(column)
-            if lower_bound is not None:
-                if value > 850:
-                    wavelength_columns.append(column)
+            if lower_bound is not None and value < lower_bound \
+                or upper_bound is not None and value > upper_bound:
+                pass
             else:
                 wavelength_columns.append(column)
         except:
